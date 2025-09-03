@@ -7,7 +7,6 @@ from pydantic import BaseModel, EmailStr
 
 
 class UserBase(BaseModel):
-    id: UUID
     username: str
     email: EmailStr   # 👈 đổi từ str sang EmailStr
     display_name: str
@@ -30,5 +29,6 @@ class UserUpdate(BaseModel):
 
 
 class UserRead(UserBase):
+    id: UUID
     created_at: datetime
     updated_at: datetime
