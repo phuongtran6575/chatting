@@ -14,7 +14,7 @@ token = auth_service.oauth2_schema
 
 @router.get("/read_me")
 async def read_me(token: Annotated[str, Depends(token)], session: sessionDepends ):
-    user = auth_service.get_current_user(session=session, token=token)
+    user = await auth_service.get_current_user(session=session, token=token)
     if user is None:
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

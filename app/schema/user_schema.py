@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr
 
 class UserBase(BaseModel):
     username: str
-    email: EmailStr   # 👈 đổi từ str sang EmailStr
+    email: EmailStr   
     display_name: str
     avatar_url: Optional[str]
     status: UserStatus
@@ -17,7 +17,7 @@ class UserBase(BaseModel):
 
 class UserCreate(BaseModel):
     username: str
-    email: EmailStr   # 👈 validate email khi tạo user
+    email: EmailStr   
     password: str
     display_name: str
 
