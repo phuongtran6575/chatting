@@ -18,10 +18,10 @@ class User(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    '''conversations_created: List["Conversation"] = Relationship(back_populates="creator")
+    conversations_created: List["Conversation"] = Relationship(back_populates="creator")
     memberships: List["ConversationMember"] = Relationship(back_populates="user")
     messages: List["Message"] = Relationship(back_populates="sender")
-    receipts: List["MessageReceipt"] = Relationship(back_populates="user")
+    '''receipts: List["MessageReceipt"] = Relationship(back_populates="user")
     reactions: List["MessageReaction"] = Relationship(back_populates="user")
     friend_requests_sent: List["FriendRequest"] = Relationship(back_populates="sender", sa_relationship_kwargs={"foreign_keys": "[FriendRequest.sender_id]"})
     friend_requests_received: List["FriendRequest"] = Relationship(back_populates="receiver", sa_relationship_kwargs={"foreign_keys": "[FriendRequest.receiver_id]"})
@@ -31,7 +31,7 @@ class User(SQLModel, table=True):
     sessions: List["UserSession"] = Relationship(back_populates="user")'''
 
 
-'''class Conversation(SQLModel, table=True):
+class Conversation(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     type: ConversationType = Field()
@@ -75,11 +75,11 @@ class Message(SQLModel, table=True):
     # Relationships
     conversation: Optional[Conversation] = Relationship(back_populates="messages")
     sender: Optional[User] = Relationship(back_populates="messages")
-    receipts: List["MessageReceipt"] = Relationship(back_populates="message")
-    reactions: List["MessageReaction"] = Relationship(back_populates="message")
+    '''receipts: List["MessageReceipt"] = Relationship(back_populates="message")
+    reactions: List["MessageReaction"] = Relationship(back_populates="message")'''
 
 
-class MessageReceipt(SQLModel, table=True):
+'''class MessageReceipt(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     message_id: UUID = Field(foreign_key="messages.id")
