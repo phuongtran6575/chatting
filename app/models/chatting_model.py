@@ -31,7 +31,7 @@ class User(SQLModel, table=True):
     sessions: List["UserSession"] = Relationship(back_populates="user")'''
 
 
-class Conversation(SQLModel, table=True):
+'''class Conversation(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     type: ConversationType = Field()
@@ -75,7 +75,7 @@ class Message(SQLModel, table=True):
     # Relationships
     conversation: Optional[Conversation] = Relationship(back_populates="messages")
     sender: Optional[User] = Relationship(back_populates="messages")
-    '''receipts: List["MessageReceipt"] = Relationship(back_populates="message")
+    receipts: List["MessageReceipt"] = Relationship(back_populates="message")
     reactions: List["MessageReaction"] = Relationship(back_populates="message")'''
 
 
