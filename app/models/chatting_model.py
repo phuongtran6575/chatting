@@ -18,9 +18,9 @@ class User(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    conversations_created: List["Conversation"] = Relationship(back_populates="creator")
-    memberships: List["ConversationMember"] = Relationship(back_populates="user")
-    messages: List["Message"] = Relationship(back_populates="sender")
+    #conversations_created: List["Conversation"] = Relationship(back_populates="creator")
+    #memberships: List["ConversationMember"] = Relationship(back_populates="user")
+    #messages: List["Message"] = Relationship(back_populates="sender")
     '''receipts: List["MessageReceipt"] = Relationship(back_populates="user")
     reactions: List["MessageReaction"] = Relationship(back_populates="user")
     friend_requests_sent: List["FriendRequest"] = Relationship(back_populates="sender", sa_relationship_kwargs={"foreign_keys": "[FriendRequest.sender_id]"})
