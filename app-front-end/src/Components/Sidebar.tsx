@@ -9,50 +9,27 @@ import { useReadMe } from "../core/hook/useAuth";
 import { useDebounce } from "use-debounce";
 import CloseIcon from '@mui/icons-material/Close';
 
-const friends = [
-    { name: "Alex the Adventurer", avatar: "https://i.pravatar.cc/150?img=11" },
-    { name: "Chef Carlo", avatar: "https://i.pravatar.cc/150?img=3" },
-    { name: "Professor Eva", avatar: "https://i.pravatar.cc/150?img=5" },
-    { name: "Zen Master Kaito", avatar: "https://i.pravatar.cc/150?img=8" },
-    { name: "Nina the Navigator", avatar: "https://i.pravatar.cc/150?img=9" },
-    { name: "RoboSensei", avatar: "https://i.pravatar.cc/150?img=10" },
-];
 
 interface SidebarProps {
     isCollapsed: boolean;
+    onSelectUser: (user: any) => void;  // 🧩 callback gửi user ra ngoài
+    selectedUser: any | null;           // 🧠 user hiện đang chọn
 }
 
-const Sidebar = ({ isCollapsed }: SidebarProps) => {
+const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
 
-    // 🧠 State
-    const [selected, setSelected] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const userButtonRef = useRef<HTMLDivElement | null>(null);
 
-    // 🧩 Hooks
-    const { data: profile, isLoading: isLoadingReadMe, error: errorReadMe } = useReadMe();
-    const isReady = !!profile?.user?.id;
+    const { data: profile, isLoading: isLoadingReadMe } = useReadMe();
     const [debouncedSearch] = useDebounce(searchTerm, 400);
-    const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, isReady ? profile.user.id : "", 1, 10);
-    const { data: users, isLoading: isLoadingUsers, error: errorUSers } = useGetAllUsers(1, 10);
+    const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, profile?.user?.id || "", 1, 10);
+    const { data: users, isLoading: isLoadingUsers } = useGetAllUsers(1, 10);
 
-    useEffect(() => {
-        console.log("🔍 search term:", debouncedSearch);
-        console.log("👤 current user id:", profile?.user?.id);
-        console.log("📊 search result:", searchResult?.items);
-    }, [debouncedSearch, profile?.user?.id, searchResult]);
-
-    // 🧮 Filter friends (local)
-    const filteredFriends = useMemo(
-        () => friends.filter((f) => f.name.toLowerCase().includes(searchTerm.toLowerCase())),
-        [searchTerm]
-    );
-
-    // 🧭 Dropdown menu
     const menuOpen = Boolean(anchorEl);
     const handleToggleMenu = (e: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(menuOpen ? null : e.currentTarget);
@@ -63,8 +40,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         navigate("/login");
     };
 
-    if (isLoadingReadMe || isLoadingUsers) return <p>Loading profile...</p>;
-    if (errorReadMe || errorUSers) return <p>Error loading profile</p>;
+    if (isLoadingReadMe || isLoadingUsers) return <p>Loading...</p>;
     if (!profile?.user) return <p>No user found</p>;
 
     return (
@@ -79,7 +55,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 transition: "width 0.3s ease",
             }}
         >
-            {/* 🔍 Search Bar */}
+            {/* 🔍 Search bar */}
             {!isCollapsed && (
                 <Box sx={{ p: 2, pb: 0 }}>
                     <TextField
@@ -90,14 +66,12 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onFocus={() => setIsSearching(true)}
-                        // ❌ XÓA onBlur (để không tự thoát search mode)
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
                                     <SearchIcon sx={{ color: "rgba(255,255,255,0.6)" }} />
                                 </InputAdornment>
                             ),
-                            // ✅ Nút X để thoát search mode
                             endAdornment: isSearching && (
                                 <InputAdornment position="end">
                                     <IconButton
@@ -132,16 +106,8 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 </Box>
             )}
 
-            {/* 🧑‍🤝‍🧑 Friends or Search Results */}
-            <Box
-                sx={{
-                    flexGrow: 1,
-                    overflowY: "auto",
-                    px: isCollapsed ? 0.5 : 2,
-                    py: 2,
-                    transition: "all 0.3s ease",
-                }}
-            >
+            {/* Danh sách người dùng */}
+            <Box sx={{ flexGrow: 1, overflowY: "auto", p: isCollapsed ? 0.5 : 2 }}>
                 {isSearching && searchTerm ? (
                     <>
                         <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.6)", mb: 1 }}>
@@ -155,19 +121,14 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                                 {searchResult.items.map((u: any) => (
                                     <ListItem
                                         key={u.id}
-                                        onClick={() => {
-                                            // ❗ KHÔNG thoát search mode ở đây nữa
-                                            setSelected(u.full_name);
-                                        }}
+                                        onClick={() => onSelectUser(u)} // 🧩 click → gửi user ra cha
                                         sx={{
                                             borderRadius: 2,
                                             mb: 1,
                                             bgcolor:
-                                                selected === u.full_name ? "rgba(0, 145, 255, 0.15)" : "transparent",
-                                            transition: "0.3s",
+                                                selectedUser?.id === u.id ? "rgba(0,145,255,0.15)" : "transparent",
                                             cursor: "pointer",
-                                            justifyContent: isCollapsed ? "center" : "flex-start",
-                                            "&:hover": { bgcolor: "rgba(0, 145, 255, 0.1)" },
+                                            "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
                                         }}
                                     >
                                         <ListItemAvatar>
@@ -177,7 +138,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                                             <Typography
                                                 variant="subtitle1"
                                                 sx={{
-                                                    fontWeight: selected === u.full_name ? 700 : 500,
+                                                    fontWeight: selectedUser?.id === u.id ? 700 : 500,
                                                     color: "#fff",
                                                 }}
                                             >
@@ -190,11 +151,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                         ) : (
                             <Typography
                                 variant="body2"
-                                sx={{
-                                    color: "rgba(255,255,255,0.6)",
-                                    textAlign: "center",
-                                    mt: 2,
-                                }}
+                                sx={{ color: "rgba(255,255,255,0.6)", textAlign: "center", mt: 2 }}
                             >
                                 No users found
                             </Typography>
@@ -207,45 +164,43 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                         </Typography>
 
                         <List>
-                            {users?.items.map((friend) => {
-                                const isSelected = selected === friend.full_name;
-                                return (
-                                    <ListItem
-                                        key={friend.full_name}
-                                        onClick={() => setSelected(friend.full_name)}
-                                        sx={{
-                                            borderRadius: 2,
-                                            mb: 1,
-                                            bgcolor: isSelected ? "rgba(0, 145, 255, 0.15)" : "transparent",
-                                            transition: "0.3s",
-                                            cursor: "pointer",
-                                            justifyContent: isCollapsed ? "center" : "flex-start",
-                                            "&:hover": { bgcolor: "rgba(0, 145, 255, 0.1)" },
-                                        }}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar src={"https://i.pravatar.cc/150?img=11"} />
-                                        </ListItemAvatar>
-                                        {!isCollapsed && (
-                                            <Typography
-                                                variant="subtitle1"
-                                                sx={{
-                                                    fontWeight: isSelected ? 700 : 500,
-                                                    color: "#fff",
-                                                }}
-                                            >
-                                                {friend.full_name}
-                                            </Typography>
-                                        )}
-                                    </ListItem>
-                                );
-                            })}
+                            {users?.items.map((friend: any) => (
+                                <ListItem
+                                    key={friend.id}
+                                    onClick={() => onSelectUser(friend)}
+                                    sx={{
+                                        borderRadius: 2,
+                                        mb: 1,
+                                        bgcolor:
+                                            selectedUser?.id === friend.id
+                                                ? "rgba(0,145,255,0.15)"
+                                                : "transparent",
+                                        cursor: "pointer",
+                                        "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
+                                    }}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar src={friend.avatar_url || "https://i.pravatar.cc/150?img=11"} />
+                                    </ListItemAvatar>
+                                    {!isCollapsed && (
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                fontWeight: selectedUser?.id === friend.id ? 700 : 500,
+                                                color: "#fff",
+                                            }}
+                                        >
+                                            {friend.full_name}
+                                        </Typography>
+                                    )}
+                                </ListItem>
+                            ))}
                         </List>
                     </>
                 )}
             </Box>
 
-            {/* 👤 Footer user menu */}
+            {/* Footer user info */}
             {!isCollapsed && (
                 <Box
                     ref={userButtonRef}
@@ -263,21 +218,14 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                     }}
                 >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                        <Avatar src="https://i.pravatar.cc/150?img=15" />
+                        <Avatar src={profile.user.avatar_url || "https://i.pravatar.cc/150?img=15"} />
                         <Box>
                             <Typography sx={{ fontWeight: 600 }}>{profile.user.full_name}</Typography>
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    color: "rgba(255,255,255,0.6)",
-                                    fontSize: 12,
-                                }}
-                            >
+                            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
                                 {profile.user.email}
                             </Typography>
                         </Box>
                     </Box>
-
                     <IconButton
                         size="small"
                         sx={{
@@ -314,6 +262,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                         </MenuItem>
                     </Menu>
                 </Box>
+
             )}
         </Box>
     );

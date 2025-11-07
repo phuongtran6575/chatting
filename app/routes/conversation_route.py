@@ -7,7 +7,7 @@ from databases.database import sessionDepends
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
 
-@router.get("/")
+@router.get("/single")
 async def create_or_get_single_conversation(sender_id: UUID, receiver_id: UUID, session: sessionDepends):
     try:
         # Đã thay đổi: Tên biến

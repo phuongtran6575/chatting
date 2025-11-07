@@ -6,8 +6,13 @@ import {
 } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
+import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
 
 const ChatInput = () => {
+    const { } = useGetOrCreateSingleConversation("senderId", "receiverId");
+    const sendMessage = () => {
+        // implement send logic here
+    };
     return (
         <Box
             sx={{
@@ -51,6 +56,7 @@ const ChatInput = () => {
 
             {/* Nút gửi tin nhắn */}
             <IconButton
+                onClick={sendMessage}
                 sx={{
                     ml: 1.5,
                     bgcolor: "#3b4a63",

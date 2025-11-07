@@ -9,13 +9,15 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CallOutlinedIcon from "@mui/icons-material/CallOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import type { User } from "../core/Types";
 
 interface HeaderProps {
     onToggleSidebar: () => void;
     onToggleInfo: () => void;
+    selectedUser: User | null;
 }
 
-const Header = ({ onToggleSidebar, onToggleInfo }: HeaderProps) => {
+const Header = ({ onToggleSidebar, onToggleInfo, selectedUser }: HeaderProps) => {
     return (
         <Box
             sx={{
@@ -37,7 +39,7 @@ const Header = ({ onToggleSidebar, onToggleInfo }: HeaderProps) => {
                 <Stack direction="row" alignItems="center" spacing={1.5}>
                     <Avatar src="https://i.pravatar.cc/150?img=12" sx={{ width: 40, height: 40 }} />
                     <Typography variant="subtitle1" sx={{ color: "white", fontWeight: 700 }}>
-                        Alex the Adventurer
+                        {selectedUser ? selectedUser.full_name : "Chọn một người để chat"}
                     </Typography>
                 </Stack>
             </Stack>

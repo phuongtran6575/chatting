@@ -4,6 +4,7 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import { Link, useNavigate } from "react-router-dom";
 import { useRegister } from "../core/hook/useAuth";
 import { useState } from "react";
+import type { AxiosError } from "axios";
 
 const RegisterPage = () => {
     const [form, setForm] = useState({
@@ -37,10 +38,10 @@ const RegisterPage = () => {
                 alert("Đăng ký thành công!");
                 navigate("/login");
             },
-            onError: (err) => {
+            onError: (error) => {
+                const err = error as AxiosError<{ detail?: string }>;
                 alert(err.response?.data?.detail || "Đăng ký thất bại!");
             },
-
         });
     };
 
