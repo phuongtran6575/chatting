@@ -2,6 +2,8 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 from uuid import UUID, uuid4
 from datetime import datetime
+from sqlalchemy.orm import Mapped
+
 import enum
 
 # ============================
@@ -63,7 +65,7 @@ class ConversationRole(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     participants: List["ConversationParticipant"] = Relationship(back_populates="role")
-    role_permissions: List["RolePermission"] = Relationship(back_populates="role")
+    role_permissions: List["RolePermission"] = Relationship(back_populates="role", cascade_delete=True)
 
 
 class Permission(SQLModel, table=True):
@@ -169,10 +171,10 @@ class Conversation(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    creator: Optional[User] = Relationship(back_populates="conversations_created")
-    participants: List["ConversationParticipant"] = Relationship(back_populates="conversation")
-    messages: List["Message"] = Relationship(back_populates="conversation")
-    calls: List["Call"] = Relationship(back_populates="conversation")
+    creator: Mapped[Optional[User]] = Relationship(back_populates="conversations_created")
+    participants: Mapped[List["ConversationParticipant"]] = Relationship(back_populates="conversation", cascade_delete=True)
+    messages: List["Message"] = Relationship(back_populates="conversation", cascade_delete=True)
+    calls: List["Call"] = Relationship(back_populates="conversation", cascade_delete=True)
 
 
 class ConversationParticipant(SQLModel, table=True):
@@ -185,7 +187,7 @@ class ConversationParticipant(SQLModel, table=True):
     is_archived: bool = Field(default=False)
 
     conversation: Conversation = Relationship(back_populates="participants")
-    user: User = Relationship(back_populates="participants")
+    user: Mapped[User] = Relationship(back_populates="participants")
     role: Optional[ConversationRole] = Relationship(back_populates="participants")
 
 # ============================

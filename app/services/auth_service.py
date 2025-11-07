@@ -85,7 +85,8 @@ async def get_current_user(token: str, session: AsyncSession):
 def require_roles(allowed_roles: List[str]):
     async def role_checker(current_user: User = Depends(get_current_user)):
         if not current_user.system_role or current_user.system_role.name not in allowed_roles:
-            raise ValueError("Not found")
-        return current_user
+            raise ValueError("Insufficient permissions")
+        # ⚠️ return None thay vì user để tránh lỗi response field
+        return None
     return role_checker
 

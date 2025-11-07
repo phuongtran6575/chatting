@@ -256,6 +256,7 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
                     >
                         <MenuItem onClick={handleCloseMenu}>My Account</MenuItem>
                         <MenuItem onClick={handleCloseMenu}>Settings</MenuItem>
+                        <MenuItem onClick={handleCloseMenu}>Create Group</MenuItem>
                         <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)" }} />
                         <MenuItem onClick={handleLogout} sx={{ color: "#ff4d4d", fontWeight: 600 }}>
                             Log Out

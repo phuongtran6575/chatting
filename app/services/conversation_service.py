@@ -5,6 +5,8 @@ from uuid import UUID
 from sqlmodel import col, func, select
 from models.conversation_schema import ConversationCreate
 from models.messenger_model import Conversation, ConversationParticipant, ConversationType
+from sqlalchemy.orm import selectinload
+
 
 
 async def create_or_get_single_conversation(sender_id: UUID, receiver_id: UUID, session: AsyncSession):
@@ -93,3 +95,64 @@ async def get_all_conversations(session: AsyncSession, page: int = 1, page_size:
         "page": page,
         "page_size": page_size,
     }
+    
+async def get_user_conversations(
+    session: AsyncSession,
+    user_id: UUID,
+    page: int = 1,
+    page_size: int = 10
+):
+    total_stmt = select(func.count()).select_from(ConversationParticipant).where(
+        ConversationParticipant.user_id == user_id
+    )
+    total_result = await session.execute(total_stmt)
+    total = total_result.scalar_one()
+
+    stmt = (
+        select(Conversation)
+        .join(ConversationParticipant)
+        .where(ConversationParticipant.user_id == user_id)
+        .options(
+            selectinload(Conversation.participants).selectinload(ConversationParticipant.user),
+            selectinload(Conversation.creator),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    result = await session.execute(stmt)
+    conversations = result.scalars().unique().all()  # ⚠️ nhớ .unique() nếu có join
+
+    return {
+        "items": [
+        {
+            "id": c.id,
+            "type": c.type,
+            "name": c.name,
+            "participants": [
+                {
+                    "id": p.user.id,
+                    "full_name": p.user.full_name,
+                    "avatar_url": p.user.avatar_url,
+                }
+                for p in c.participants
+            ],
+        }
+        for c in conversations
+    ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+    
+    
+async def delete_conversation(conversation_id: UUID, session: AsyncSession):
+    """Xóa cuộc trò chuyện theo ID."""
+    stmt = select(Conversation).where(Conversation.id == conversation_id)
+    result = await session.execute(stmt)
+    conversation = result.scalars().first()
+    if conversation:
+        await session.delete(conversation)
+        await session.commit()
+        return True
+    return False

@@ -13,3 +13,8 @@ export interface User{
     created_at: Date
     updated_at: Date
 }
+export interface CreateGroupPayload {
+  creator_id: string;
+  member_ids: string[]; // 👈 phải là mảng
+  group_name?: string;
+}

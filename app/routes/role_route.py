@@ -72,3 +72,20 @@ async def delete_role(role_id: UUID, session: sessionDepends):
         # Đã thay đổi: Message lỗi
         raise HTTPException(status_code=404, detail="Role not found")
     return {"ok": True}
+
+@router.put("/change-user-role/{user_id}/{role_id}")
+async def change_user_role_by_id(user_id: str, role_id: str, session: sessionDepends):
+    """Thay đổi vai trò của người dùng trong cuộc trò chuyện."""
+    try:
+        # Đã thay đổi: Tên biến
+        user_uuid = to_uuid(user_id) 
+        role_uuid = to_uuid(role_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+    # Đã thay đổi: Tên biến và gọi service của Role
+    success = await role_service.change_user_role_by_id(session, user_uuid, role_uuid)
+    if not success:
+        # Đã thay đổi: Message lỗi
+        raise HTTPException(status_code=404, detail="User or Role not found")
+    return success
