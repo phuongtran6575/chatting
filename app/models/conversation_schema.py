@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from uuid import UUID
-from typing import List
+from typing import List, Optional
 
 from models.messenger_model import ConversationType
 
@@ -10,3 +10,8 @@ class ConversationBase(BaseModel):
 
 class ConversationCreate(ConversationBase):
     pass
+
+class GroupConversationCreate(BaseModel):
+    creator_id: UUID
+    member_ids: List[UUID]
+    group_name: Optional[str] = None
