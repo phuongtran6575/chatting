@@ -3,7 +3,6 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from sqlmodel import col, func, select
-
 from models.conversation_schema import ConversationCreate
 from models.messenger_model import Conversation, ConversationParticipant, ConversationType
 
@@ -45,40 +44,8 @@ async def create_or_get_single_conversation(sender_id: UUID, receiver_id: UUID, 
 
     return new_conversation
     
-async def create_or_get_group_conversation(creator_id: UUID, member_ids: List[UUID],session: AsyncSession, group_name: str | None = None):
-    """
-    Tạo hoặc lấy group conversation nếu tồn tại (có cùng tập người tham gia)
-    """
-
-    # 👉 Bước 1: kiểm tra xem có conversation GROUP nào có đúng danh sách thành viên này không
-    stmt = (
-        select(Conversation.id)
-        .join(ConversationParticipant)
-        .where(Conversation.type == ConversationType.GROUP)
-        .group_by(col(Conversation.id))
-        .having(
-            func.count(col(ConversationParticipant.user_id)) == len(member_ids),
-        )
-    )
-
-    result = await session.execute(stmt)
-    possible_conversations = result.scalars().all()
-
-    # 👉 Bước 2: lọc ra conversation có đúng tập user_id
-    for conv_id in possible_conversations:
-        stmt_participants = select(ConversationParticipant.user_id).where(
-            ConversationParticipant.conversation_id == conv_id
-        )
-        result_p = await session.execute(stmt_participants)
-        participant_ids = set(result_p.scalars().all())
-
-        if participant_ids == set(member_ids):
-            # ✅ Tìm thấy nhóm có đúng tập user
-            stmt_conv = select(Conversation).where(Conversation.id == conv_id)
-            result_conv = await session.execute(stmt_conv)
-            return result_conv.scalar_one()
-
-    # 👉 Bước 3: Nếu chưa có thì tạo mới
+async def create_group_conversation(creator_id: UUID, member_ids: List[UUID],session: AsyncSession, group_name: str | None = None):
+ # 👉 Bước 3: Nếu chưa có thì tạo mới
     new_conversation = Conversation(
         creator_id=creator_id,
         type=ConversationType.GROUP,
@@ -97,3 +64,32 @@ async def create_or_get_group_conversation(creator_id: UUID, member_ids: List[UU
     await session.commit()
 
     return new_conversation
+
+async def get_group_conversation(conversation_id: UUID, session: AsyncSession):
+    """Lấy thông tin một group conversation theo ID."""
+    stmt = select(Conversation).where(
+        Conversation.id == conversation_id,
+        Conversation.type == ConversationType.GROUP
+    )
+    result = await session.execute(stmt)
+    conversation = result.scalars().first()
+    return conversation
+
+async def get_all_conversations(session: AsyncSession, page: int = 1, page_size: int = 10):
+    """Lấy danh sách tất cả cuộc trò chuyện có phân trang."""
+    total_stmt = select(func.count()).select_from(Conversation)
+    total_result = await session.execute(total_stmt)
+    total = total_result.scalar_one()
+
+    offset = (page - 1) * page_size
+
+    stmt = select(Conversation).offset(offset).limit(page_size)
+    result = await session.execute(stmt)
+    conversations = result.scalars().all()
+
+    return {
+        "items": conversations,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
