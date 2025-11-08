@@ -1,4 +1,4 @@
-import { Avatar, Box, Divider, IconButton, InputAdornment, List, ListItem, ListItemAvatar, Menu, MenuItem, TextField, Typography, } from "@mui/material";
+import { Avatar, Box, Divider, IconButton, InputAdornment, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, TextField, Typography, } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import SearchIcon from "@mui/icons-material/Search";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -8,6 +8,7 @@ import { useGetAllUsers, useSearchUsers } from "../core/hook/useUser";
 import { useReadMe } from "../core/hook/useAuth";
 import { useDebounce } from "use-debounce";
 import CloseIcon from '@mui/icons-material/Close';
+import { useGetUserConversations } from "../core/hook/useConversation";
 
 
 interface SidebarProps {
@@ -28,7 +29,10 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
     const { data: profile, isLoading: isLoadingReadMe } = useReadMe();
     const [debouncedSearch] = useDebounce(searchTerm, 400);
     const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, profile?.user?.id || "", 1, 10);
-    const { data: users, isLoading: isLoadingUsers } = useGetAllUsers(1, 10);
+    const { data: conversations, isLoading: isLoadingConversations } = useGetUserConversations(
+        profile?.user?.id || ""
+    );
+    console.log("Conversations in Sidebar:", conversations);
 
     const menuOpen = Boolean(anchorEl);
     const handleToggleMenu = (e: React.MouseEvent<HTMLElement>) => {
@@ -39,8 +43,34 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
         logout();
         navigate("/login");
     };
+    // Helper function để lấy tên hiển thị
+    const getConversationDisplayName = (conversation: any) => {
+        if (conversation.type === 'group') {
+            return conversation.name;
+        }
+        // Với single chat, tìm participant không phải current user
+        const otherParticipant = conversation.participants?.find(
+            (p: any) => p.id !== profile?.user?.id
+        );
+        console.log("Other Participant:", otherParticipant);
+        return otherParticipant?.full_name || 'Unknown User';
+    };
 
-    if (isLoadingReadMe || isLoadingUsers) return <p>Loading...</p>;
+    // Helper function để lấy avatar
+    const getConversationAvatar = (conversation: any) => {
+        if (conversation.type === 'group') {
+            return conversation.avatar_url || "https://i.pravatar.cc/150?img=11";
+        }
+
+        // Với single chat, lấy avatar của người còn lại
+        const otherParticipant = conversation.participants?.find(
+            (p: any) => p.id !== profile?.id
+        );
+
+        return otherParticipant?.avatar_url || "https://i.pravatar.cc/150?img=11";
+    };
+
+    if (isLoadingReadMe || isLoadingConversations) return <p>Loading...</p>;
     if (!profile?.user) return <p>No user found</p>;
 
     return (
@@ -164,37 +194,43 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
                         </Typography>
 
                         <List>
-                            {users?.items.map((friend: any) => (
-                                <ListItem
-                                    key={friend.id}
-                                    onClick={() => onSelectUser(friend)}
-                                    sx={{
-                                        borderRadius: 2,
-                                        mb: 1,
-                                        bgcolor:
-                                            selectedUser?.id === friend.id
-                                                ? "rgba(0,145,255,0.15)"
-                                                : "transparent",
-                                        cursor: "pointer",
-                                        "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
-                                    }}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar src={friend.avatar_url || "https://i.pravatar.cc/150?img=11"} />
-                                    </ListItemAvatar>
-                                    {!isCollapsed && (
-                                        <Typography
-                                            variant="subtitle1"
-                                            sx={{
-                                                fontWeight: selectedUser?.id === friend.id ? 700 : 500,
-                                                color: "#fff",
-                                            }}
-                                        >
-                                            {friend.full_name}
-                                        </Typography>
-                                    )}
-                                </ListItem>
-                            ))}
+                            {conversations?.items && conversations.items.length > 0 ? (
+                                conversations.items.map((conversation: any) => (
+                                    <ListItem
+                                        key={conversation.id}
+                                        onClick={() => onSelectUser(conversation)}
+                                        sx={{
+                                            borderRadius: 2,
+                                            mb: 1,
+                                            bgcolor:
+                                                selectedUser?.id === conversation.id
+                                                    ? "rgba(0,145,255,0.15)"
+                                                    : "transparent",
+                                            cursor: "pointer",
+                                            "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
+                                        }}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar src={getConversationAvatar(conversation)} />
+                                        </ListItemAvatar>
+                                        {!isCollapsed && (
+                                            <Typography
+                                                variant="subtitle1"
+                                                sx={{
+                                                    fontWeight: selectedUser?.id === conversation.id ? 700 : 500,
+                                                    color: "#fff",
+                                                }}
+                                            >
+                                                {getConversationDisplayName(conversation)}
+                                            </Typography>
+                                        )}
+                                    </ListItem>
+                                ))
+                            ) : (
+                                <Typography sx={{ color: '#fff', textAlign: 'center', mt: 2 }}>
+                                    No conversations
+                                </Typography>
+                            )}
                         </List>
                     </>
                 )}

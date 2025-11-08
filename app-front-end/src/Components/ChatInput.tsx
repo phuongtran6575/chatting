@@ -6,10 +6,8 @@ import {
 } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
-import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
 
 const ChatInput = () => {
-    const { } = useGetOrCreateSingleConversation("senderId", "receiverId");
     const sendMessage = () => {
         // implement send logic here
     };

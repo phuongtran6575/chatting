@@ -1,4 +1,4 @@
-import type { CreateGroupPayload } from "../Types";
+import type { ConversationResponse, CreateGroupPayload } from "../Types";
 import { axiosAPI } from "./baseService";
 
 export  const conversationService = {
@@ -18,8 +18,8 @@ export  const conversationService = {
         const res = axiosAPI.get("/conversations/");
         return res;
     },
-    getUserConversations: (userId: string) =>{
-        const res = axiosAPI.get(`/conversations/user/${userId}`);
-        return res;
-    }
+    getUserConversations: async (userId: string): Promise<ConversationResponse> => {
+        const res = await axiosAPI.get<ConversationResponse>(`/conversations/user/${userId}`);
+        return res.data; // 🟢 chỉ trả res.data
+  },
 }

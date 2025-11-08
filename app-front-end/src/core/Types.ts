@@ -18,3 +18,21 @@ export interface CreateGroupPayload {
   member_ids: string[]; // 👈 phải là mảng
   group_name?: string;
 }
+export interface ParticipantUser {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+}
+
+export interface Conversation {
+  id: string;
+  name: string;
+  type: "single" | "group";
+  participants: ParticipantUser[];
+}
+export interface ConversationResponse {
+  items: Conversation[];
+  total: number;
+  page: number;
+  page_size: number;
+}
