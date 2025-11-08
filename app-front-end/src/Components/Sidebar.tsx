@@ -16,9 +16,10 @@ interface SidebarProps {
     onSelectUser: (user: any) => void;  // 🧩 callback gửi user ra ngoài
     selectedUser: any | null;           // 🧠 user hiện đang chọn
     currentUser: User | null;
+    conversations: any | null
 }
 
-const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser }: SidebarProps) => {
+const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, conversations }: SidebarProps) => {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
 
@@ -29,10 +30,7 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser }: Sideb
 
     const [debouncedSearch] = useDebounce(searchTerm, 400);
     const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, currentUser?.id || "", 1, 10);
-    const { data: conversations, isLoading: isLoadingConversations, error: errorConversations } = useGetUserConversations(
-        currentUser?.id || ""
-    );
-    //console.log("Conversations in Sidebar:", conversations);
+    console.log("Conversations in Sidebar:", conversations);
 
     const menuOpen = Boolean(anchorEl);
     const handleToggleMenu = (e: React.MouseEvent<HTMLElement>) => {
@@ -70,7 +68,6 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser }: Sideb
         return otherParticipant?.avatar_url || "https://i.pravatar.cc/150?img=11";
     };
 
-    if (isLoadingConversations) return <p>Loading...</p>;
 
     return (
         <Box

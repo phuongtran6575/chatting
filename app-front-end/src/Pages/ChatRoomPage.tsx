@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Box } from "@mui/material";
 import Sidebar from "../Components/Sidebar";
 import Header from "../Components/Header";
@@ -6,6 +6,8 @@ import ChatContent from "../Components/ChatContent";
 import ChatInfoSidebar from "../Components/ChatInforSidebar";
 import ChatInput from "../Components/ChatInput";
 import { useReadMe } from "../core/hook/useAuth";
+import { useGetAllUsers } from "../core/hook/useUser";
+import { useGetUserConversations } from "../core/hook/useConversation";
 
 const ChatRoomPage = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -13,15 +15,33 @@ const ChatRoomPage = () => {
 
     // 🧠 user đang được chọn (từ Sidebar)
     const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
-
     const { data: profile, isLoading: isLoadingReadMe } = useReadMe();
-    if (isLoadingReadMe) return <p>Loading...</p>;
+    const { data: conversations, isLoading: isLoadingConversations, error: errorConversations } = useGetUserConversations(profile?.user.id || "");
+    const { data: users, isLoading: isLoadingUsers, error: errorUsers } = useGetAllUsers()
+    const mergedList = useMemo(() => {
+        if (!users || !conversations?.items) return [];
+
+        // lọc bạn bè chưa có conversation
+        const friendWithoutConv = users.items.filter(
+            (f: any) =>
+                !conversations.items.some((c: any) =>
+                    c.participants.some((p: any) => p.id === f.id)
+                )
+        );
+
+        return [...conversations.items, ...friendWithoutConv];
+    }, [users, conversations]);
+
+
+
+
+    if (isLoadingReadMe || isLoadingConversations || isLoadingUsers) return <p>Loading...</p>;
     if (!profile?.user) return <p>No user found</p>;
 
     return (
         <Box sx={{ display: "flex", height: "100vh", color: "#fff", }} >
             {/* Sidebar trái */}
-            <Sidebar
+            <Sidebar conversations={conversations}
                 isCollapsed={isCollapsed}
                 onSelectUser={(user) => setSelectedConversation(user)} // ⬅ nhận callback từ Sidebar
                 selectedUser={selectedConversation}
