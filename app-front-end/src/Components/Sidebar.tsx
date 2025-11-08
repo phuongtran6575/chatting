@@ -5,19 +5,20 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../core/Stores/authStore";
 import { useGetAllUsers, useSearchUsers } from "../core/hook/useUser";
-import { useReadMe } from "../core/hook/useAuth";
 import { useDebounce } from "use-debounce";
 import CloseIcon from '@mui/icons-material/Close';
 import { useGetUserConversations } from "../core/hook/useConversation";
+import type { User } from "../core/Types";
 
 
 interface SidebarProps {
     isCollapsed: boolean;
     onSelectUser: (user: any) => void;  // 🧩 callback gửi user ra ngoài
     selectedUser: any | null;           // 🧠 user hiện đang chọn
+    currentUser: User | null;
 }
 
-const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
+const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser }: SidebarProps) => {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
 
@@ -26,13 +27,12 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const userButtonRef = useRef<HTMLDivElement | null>(null);
 
-    const { data: profile, isLoading: isLoadingReadMe } = useReadMe();
     const [debouncedSearch] = useDebounce(searchTerm, 400);
-    const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, profile?.user?.id || "", 1, 10);
-    const { data: conversations, isLoading: isLoadingConversations } = useGetUserConversations(
-        profile?.user?.id || ""
+    const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, currentUser?.id || "", 1, 10);
+    const { data: conversations, isLoading: isLoadingConversations, error: errorConversations } = useGetUserConversations(
+        currentUser?.id || ""
     );
-    console.log("Conversations in Sidebar:", conversations);
+    //console.log("Conversations in Sidebar:", conversations);
 
     const menuOpen = Boolean(anchorEl);
     const handleToggleMenu = (e: React.MouseEvent<HTMLElement>) => {
@@ -50,9 +50,9 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
         }
         // Với single chat, tìm participant không phải current user
         const otherParticipant = conversation.participants?.find(
-            (p: any) => p.id !== profile?.user?.id
+            (p: any) => p.id !== currentUser?.id
         );
-        console.log("Other Participant:", otherParticipant);
+        // console.log("Other Participant:", otherParticipant);
         return otherParticipant?.full_name || 'Unknown User';
     };
 
@@ -64,14 +64,13 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
 
         // Với single chat, lấy avatar của người còn lại
         const otherParticipant = conversation.participants?.find(
-            (p: any) => p.id !== profile?.id
+            (p: any) => p.id !== currentUser?.id
         );
 
         return otherParticipant?.avatar_url || "https://i.pravatar.cc/150?img=11";
     };
 
-    if (isLoadingReadMe || isLoadingConversations) return <p>Loading...</p>;
-    if (!profile?.user) return <p>No user found</p>;
+    if (isLoadingConversations) return <p>Loading...</p>;
 
     return (
         <Box
@@ -254,11 +253,11 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser }: SidebarProps) => {
                     }}
                 >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                        <Avatar src={profile.user.avatar_url || "https://i.pravatar.cc/150?img=15"} />
+                        <Avatar src={"https://i.pravatar.cc/150?img=15"} />
                         <Box>
-                            <Typography sx={{ fontWeight: 600 }}>{profile.user.full_name}</Typography>
+                            <Typography sx={{ fontWeight: 600 }}>{currentUser?.full_name}</Typography>
                             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
-                                {profile.user.email}
+                                {currentUser?.email}
                             </Typography>
                         </Box>
                     </Box>

@@ -1,16 +1,36 @@
-import {
-    Box,
-    TextField,
-    IconButton,
-    InputAdornment,
-} from "@mui/material";
+import { Box, TextField, IconButton, InputAdornment, } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
+import type { User } from "../core/Types";
+import { useChatWebSocket } from "../core/hook/useWebsocket";
+import { useState } from "react";
+import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
 
-const ChatInput = () => {
-    const sendMessage = () => {
-        // implement send logic here
+interface ChatInputProps {
+    currentConversation: any | null;
+    currentUser: User | null;
+}
+
+const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
+    // 🧩 Khởi tạo WebSocket khi có conversation và user
+    const { messages, sendMessage } = useChatWebSocket(currentConversation?.id || "", currentUser?.id || "");
+    const { data: Conversation } = useGetOrCreateSingleConversation(currentUser?.id || "", currentConversation?.participantId || "");
+
+    const [text, setText] = useState("");
+
+    const handleSendMessage = () => {
+        //đoạn kiểm tra currenconversation id để kiểm tra các single conversation đã tốn tại hay chưa, 
+        //nếu chưa thì đoạn chat đầu tiên sẽ tự tạo conversation, 
+        // nếu  rồi thì tiếp tục gửi message
+        // với group conversation thì thường phải tạo bằng tay nên đoạn này chủ yêus để kiểm tra  single type
+        if (!currentConversation.id) {
+            console.warn("No conversation selected.");
+        }
+        if (!text.trim()) return;
+        sendMessage(text);
+        setText(""); // reset input sau khi gửi
     };
+
     return (
         <Box
             sx={{
@@ -24,7 +44,10 @@ const ChatInput = () => {
             {/* Ô nhập tin nhắn */}
             <TextField
                 fullWidth
-                placeholder="Nhắn tin với Alex the Adventurer..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()} // enter để gửi
+                placeholder="Nhắn tin với...."
                 variant="outlined"
                 InputProps={{
                     sx: {
@@ -33,12 +56,6 @@ const ChatInput = () => {
                         color: "#cfd8dc",
                         px: 2,
                         "& .MuiOutlinedInput-notchedOutline": {
-                            border: "none",
-                        },
-                        "&:hover .MuiOutlinedInput-notchedOutline": {
-                            border: "none",
-                        },
-                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                             border: "none",
                         },
                     },
@@ -54,7 +71,7 @@ const ChatInput = () => {
 
             {/* Nút gửi tin nhắn */}
             <IconButton
-                onClick={sendMessage}
+                onClick={handleSendMessage}
                 sx={{
                     ml: 1.5,
                     bgcolor: "#3b4a63",
@@ -70,5 +87,6 @@ const ChatInput = () => {
             </IconButton>
         </Box>
     );
-}
+};
+
 export default ChatInput;
