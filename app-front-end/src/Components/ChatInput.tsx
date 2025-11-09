@@ -9,6 +9,7 @@ import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
 interface ChatInputProps {
     currentConversation: any | null;
     currentUser: User | null;
+    targetUser: User | null;
     onConversationCreated?: (conversation: any) => void; // 👈 Thêm prop
 }
 
@@ -20,43 +21,39 @@ const isConversation = (obj: any): obj is Conversation => {
         (obj.type === 'group' || obj.type === 'single');
 };
 
-const ChatInput = ({ currentConversation, currentUser, onConversationCreated }: ChatInputProps) => {
-    const isValidConversation = isConversation(currentConversation);
+const ChatInput = ({ currentConversation, targetUser, currentUser, onConversationCreated }: ChatInputProps) => {
+    const [text, setText] = useState("");
+    const [pendingMessage, setPendingMessage] = useState<string | null>(null);
     const creatingForUserRef = useRef<string | null>(null);
 
-    const { messages, sendMessage, isConnected } = useChatWebSocket( // 👈 Nhận isConnected
+    const isValidConversation = currentConversation && currentConversation.participants;
+    const { messages, sendMessage, isConnected } = useChatWebSocket(
         isValidConversation ? currentConversation.id : "",
         currentUser?.id || ""
     );
     const getOrCreateConversation = useGetOrCreateSingleConversation();
     const sendFirstMessage = useSendFirstMessage();
 
-    const [text, setText] = useState("");
-    const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-
     const handleSendMessage = () => {
         if (!text.trim()) return;
+        const messageToSend = text.trim();
+        setText("");
 
-        if (!isValidConversation) {
-            const messageToSend = text;
-            const targetId = currentConversation.id; // người đang nhắn tới
+        // 🧩 Nếu chưa có conversation (chat với user)
+        if (!isValidConversation && targetUser) {
+            const targetId = targetUser.id;
             creatingForUserRef.current = targetId;
-            setText("");
-            console.log(creatingForUserRef)
+
             getOrCreateConversation.mutate(
                 { senderId: currentUser?.id || "", receiverId: targetId },
                 {
                     onSuccess: (newConversation) => {
-                        // ✅ kiểm tra xem user hiện tại có còn là người đó không
                         if (creatingForUserRef.current !== targetId) {
-                            // user đã chuyển tab -> bỏ qua gửi
                             console.log("⚠️ Conversation changed — skipping sendFirstMessage");
                             creatingForUserRef.current = null;
                             return;
                         }
-
                         onConversationCreated?.(newConversation);
-                        console.log("luu lai day")
                         sendFirstMessage.mutate({
                             conversationId: newConversation.id,
                             senderId: currentUser?.id || "",
@@ -66,16 +63,17 @@ const ChatInput = ({ currentConversation, currentUser, onConversationCreated }: 
                     onError: () => setText(messageToSend),
                 }
             );
-        } else {
-            sendMessage(text);
-            setText("");
+            return;
+        }
+
+        // 🧩 Nếu đã có conversation
+        if (isValidConversation) {
+            sendMessage(messageToSend);
         }
     };
 
-    // 👇 Theo dõi khi WebSocket connected và có pending message
     useEffect(() => {
         if (isConnected && pendingMessage) {
-            console.log("✅ WebSocket ready, sending pending message:", pendingMessage);
             sendMessage(pendingMessage);
             setPendingMessage(null);
         }
@@ -96,7 +94,7 @@ const ChatInput = ({ currentConversation, currentUser, onConversationCreated }: 
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Nhắn tin với...."
+                placeholder="Nhắn tin..."
                 variant="outlined"
                 InputProps={{
                     sx: {
@@ -104,20 +102,10 @@ const ChatInput = ({ currentConversation, currentUser, onConversationCreated }: 
                         borderRadius: 50,
                         color: "#cfd8dc",
                         px: 2,
-                        "& .MuiOutlinedInput-notchedOutline": {
-                            border: "none",
-                        },
+                        "& .MuiOutlinedInput-notchedOutline": { border: "none" },
                     },
-                    endAdornment: (
-                        <InputAdornment position="end">
-                            <IconButton size="small" sx={{ color: "#90a4ae" }}>
-                                <EmojiEmotionsRoundedIcon />
-                            </IconButton>
-                        </InputAdornment>
-                    ),
                 }}
             />
-
             <IconButton
                 onClick={handleSendMessage}
                 sx={{
@@ -126,9 +114,7 @@ const ChatInput = ({ currentConversation, currentUser, onConversationCreated }: 
                     color: "#fff",
                     p: 1.2,
                     borderRadius: "50%",
-                    "&:hover": {
-                        bgcolor: "#4a5d7a",
-                    },
+                    "&:hover": { bgcolor: "#4a5d7a" },
                 }}
             >
                 <SendRoundedIcon />

@@ -9,29 +9,62 @@ import { getConversationDisplayName } from "../core/helper/getConversationCompon
 interface HeaderProps {
     onToggleSidebar: () => void;
     onToggleInfo: () => void;
-    selectedConversation: any | null;
+    selectedConversation: any | null; // có thể là user hoặc conversation
     currentUser: User | null;
 }
 
+// ✅ Hàm xác định object có phải conversation không
 const isConversation = (obj: any): obj is Conversation => {
-    return obj &&
-        typeof obj === 'object' &&
-        'type' in obj &&
-        'participants' in obj &&
-        (obj.type === 'group' || obj.type === 'single');
+    return (
+        obj &&
+        typeof obj === "object" &&
+        "type" in obj &&
+        "participants" in obj &&
+        (obj.type === "group" || obj.type === "single")
+    );
 };
 
-const Header = ({ onToggleSidebar, onToggleInfo, selectedConversation, currentUser, }: HeaderProps) => {
-    console.log("Header selectedConversation:", selectedConversation);
+// ✅ Lấy tên hiển thị phù hợp cho conversation
 
-    // 🧩 Lấy tên hiển thị đúng loại
+
+const Header = ({
+    onToggleSidebar,
+    onToggleInfo,
+    selectedConversation,
+    currentUser,
+}: HeaderProps) => {
+    // 🧩 Tên hiển thị
+    console.log("header selector:", selectedConversation)
     const displayName = (() => {
         if (!selectedConversation) return "";
+
+        // Nếu là conversation
         if (isConversation(selectedConversation)) {
             return getConversationDisplayName(selectedConversation, currentUser);
         }
+
         // Nếu là user
         return selectedConversation.full_name || selectedConversation.email || "Người dùng";
+    })();
+
+    // 🧩 Avatar hiển thị
+    const avatarSrc = (() => {
+        if (!selectedConversation) return "";
+        if (isConversation(selectedConversation)) {
+            // Nếu là nhóm
+            if (selectedConversation.type === "group") {
+                return "https://i.pravatar.cc/150?img=12";
+            }
+
+            // Nếu là single thì lấy avatar người còn lại
+            const other = selectedConversation.participants.find(
+                (p: any) => p.id !== currentUser?.id
+            );
+            return other?.avatar_url || "https://i.pravatar.cc/150?img=5";
+        }
+
+        // Nếu là user
+        return selectedConversation.avatar_url || "https://i.pravatar.cc/150?img=1";
     })();
 
     return (
@@ -53,14 +86,7 @@ const Header = ({ onToggleSidebar, onToggleInfo, selectedConversation, currentUs
                 </IconButton>
 
                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Avatar
-                        src={
-                            isConversation(selectedConversation)
-                                ? "https://i.pravatar.cc/150?img=12"
-                                : selectedConversation?.avatar_url || "https://i.pravatar.cc/150?img=1"
-                        }
-                        sx={{ width: 40, height: 40 }}
-                    />
+                    <Avatar src={avatarSrc} sx={{ width: 40, height: 40 }} />
                     <Typography variant="subtitle1" sx={{ color: "white", fontWeight: 700 }}>
                         {displayName}
                     </Typography>

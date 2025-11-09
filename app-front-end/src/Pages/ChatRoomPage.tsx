@@ -13,10 +13,16 @@ const ChatRoomPage = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+    const [selectedUser, setSelectedUser] = useState<any | null>(null);
 
     const { data: profile, isLoading: isLoadingReadMe } = useReadMe();
-    const { data: conversations, isLoading: isLoadingConversations, error: errorConversations, refetch: refetchConversations } = useGetUserConversations(profile?.user.id || "");
-    const { data: users, isLoading: isLoadingUsers, error: errorUsers } = useGetAllUsers()
+    const {
+        data: conversations,
+        isLoading: isLoadingConversations,
+        refetch: refetchConversations,
+    } = useGetUserConversations(profile?.user.id || "");
+    const { data: users, isLoading: isLoadingUsers } = useGetAllUsers();
+    const isConversation = !selectedUser ? selectedConversation : selectedUser;
 
     const mergedList = useMemo(() => {
         if (!users?.items || !conversations?.items) return [];
@@ -24,11 +30,9 @@ const ChatRoomPage = () => {
         const friendWithoutConv = users.items.filter((f: any) =>
             !conversations.items.some((c: any) => {
                 if (c.type !== "single") return false;
-
                 const participants = Array.isArray(c.participants[0])
                     ? c.participants.flat()
                     : c.participants;
-
                 return participants.some((p: any) => p.id === f.id);
             })
         );
@@ -36,14 +40,10 @@ const ChatRoomPage = () => {
         return [...conversations.items, ...friendWithoutConv];
     }, [users, conversations]);
 
-    // 👇 Callback để update conversation sau khi tạo mới
+    // ✅ Khi conversation mới được tạo
     const handleConversationCreated = async (newConversation: any) => {
-        console.log("✅ Conversation created:", newConversation);
-
-        // 1. Update selectedConversation
         setSelectedConversation(newConversation);
-
-        // 2. Refetch conversations để cập nhật sidebar
+        setSelectedUser(null);
         await refetchConversations();
     };
 
@@ -51,18 +51,26 @@ const ChatRoomPage = () => {
     if (!profile?.user) return <p>No user found</p>;
 
     return (
-        <Box sx={{ display: "flex", height: "100vh", color: "#fff", }} >
+        <Box sx={{ display: "flex", height: "100vh", color: "#fff" }}>
             <Sidebar
                 conversations={mergedList}
                 isCollapsed={isCollapsed}
-                onSelectUser={(user) => setSelectedConversation(user)}
-                selectedUser={selectedConversation}
+                selectedConversation={selectedConversation}
+                selectedUser={selectedUser}
                 currentUser={profile?.user || null}
+                onSelectConversation={(conv) => {
+                    setSelectedConversation(conv);
+                    setSelectedUser(null);
+                }}
+                onSelectUser={(user) => {
+                    setSelectedUser(user);
+                    setSelectedConversation(null);
+                }}
             />
 
-            <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100%", }}  >
+            <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100%" }}>
                 <Header
-                    selectedConversation={selectedConversation}
+                    selectedConversation={isConversation}
                     onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
                     onToggleInfo={() => setIsInfoOpen(!isInfoOpen)}
                     currentUser={profile?.user || null}
@@ -72,8 +80,9 @@ const ChatRoomPage = () => {
 
                 <ChatInput
                     currentConversation={selectedConversation}
+                    targetUser={selectedUser}
                     currentUser={profile?.user}
-                    onConversationCreated={handleConversationCreated} // 👈 Truyền callback
+                    onConversationCreated={handleConversationCreated}
                 />
             </Box>
 
@@ -81,4 +90,5 @@ const ChatRoomPage = () => {
         </Box>
     );
 };
+
 export default ChatRoomPage;

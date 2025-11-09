@@ -14,13 +14,23 @@ import CreateGroupModal from "./CreateGroupModal";
 
 interface SidebarProps {
     isCollapsed: boolean;
-    onSelectUser: (user: any) => void;  // 🧩 callback gửi user ra ngoài
-    selectedUser: any | null;           // 🧠 user hiện đang chọn
-    currentUser: User | null;
-    conversations: any | null
+    currentUser: any;
+    conversations: any[];
+    selectedConversation: any | null;
+    selectedUser: any | null;
+    onSelectConversation: (conv: any) => void;
+    onSelectUser: (user: any) => void;
 }
 
-const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, conversations }: SidebarProps) => {
+const Sidebar = ({
+    isCollapsed,
+    conversations,
+    currentUser,
+    selectedConversation,
+    selectedUser,
+    onSelectConversation,
+    onSelectUser,
+}: SidebarProps) => {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
 
@@ -33,7 +43,6 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
     const [debouncedSearch] = useDebounce(searchTerm, 400);
     const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, currentUser?.id || "", 1, 10);
     //console.log("Conversations in Sidebar:", conversations);
-
     const menuOpen = Boolean(anchorEl);
     const handleToggleMenu = (e: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(menuOpen ? null : e.currentTarget);
@@ -61,31 +70,16 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
     };
     // Helper function để lấy tên hiển thị
     const getConversationDisplayName = (conversation: any) => {
-        if (conversation.type === 'group') {
-            return conversation.name;
-        }
-        // Với single chat, tìm participant không phải current user
-        const otherParticipant = conversation.participants?.find(
-            (p: any) => p.id !== currentUser?.id
-        );
-        // console.log("Other Participant:", otherParticipant);
-        return otherParticipant?.full_name || 'Unknown User';
+        if (conversation.type === "group") return conversation.name;
+        const other = conversation.participants?.find((p: any) => p.id !== currentUser?.id);
+        return other?.full_name || "Unknown User";
     };
 
-    // Helper function để lấy avatar
     const getConversationAvatar = (conversation: any) => {
-        if (conversation.type === 'group') {
-            return conversation.avatar_url || "https://i.pravatar.cc/150?img=11";
-        }
-
-        // Với single chat, lấy avatar của người còn lại
-        const otherParticipant = conversation.participants?.find(
-            (p: any) => p.id !== currentUser?.id
-        );
-
-        return otherParticipant?.avatar_url || "https://i.pravatar.cc/150?img=11";
+        if (conversation.type === "group") return conversation.avatar_url;
+        const other = conversation.participants?.find((p: any) => p.id !== currentUser?.id);
+        return other?.avatar_url || "https://i.pravatar.cc/150?img=11";
     };
-
 
     return (
         <Box
@@ -218,17 +212,20 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
                                         ? getConversationAvatar(item)
                                         : item.avatar_url || "https://i.pravatar.cc/150?img=10";
 
+                                    const isSelected =
+                                        (isConversation && selectedConversation?.id === item.id) ||
+                                        (!isConversation && selectedUser?.id === item.id);
+
                                     return (
                                         <ListItem
                                             key={item.id}
-                                            onClick={() => onSelectUser(item)}
+                                            onClick={() =>
+                                                isConversation ? onSelectConversation(item) : onSelectUser(item)
+                                            }
                                             sx={{
                                                 borderRadius: 2,
                                                 mb: 1,
-                                                bgcolor:
-                                                    selectedUser?.id === item.id
-                                                        ? "rgba(0,145,255,0.15)"
-                                                        : "transparent",
+                                                bgcolor: isSelected ? "rgba(0,145,255,0.15)" : "transparent",
                                                 cursor: "pointer",
                                                 "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
                                             }}
@@ -240,7 +237,7 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
                                                 <Typography
                                                     variant="subtitle1"
                                                     sx={{
-                                                        fontWeight: selectedUser?.id === item.id ? 700 : 500,
+                                                        fontWeight: isSelected ? 700 : 500,
                                                         color: "#fff",
                                                     }}
                                                 >
