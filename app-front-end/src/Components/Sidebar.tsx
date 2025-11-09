@@ -9,6 +9,7 @@ import { useDebounce } from "use-debounce";
 import CloseIcon from '@mui/icons-material/Close';
 import { useGetUserConversations } from "../core/hook/useConversation";
 import type { User } from "../core/Types";
+import CreateGroupModal from "./CreateGroupModal";
 
 
 interface SidebarProps {
@@ -26,16 +27,33 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
     const [searchTerm, setSearchTerm] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [openCreateGroup, setOpenCreateGroup] = useState(false);
     const userButtonRef = useRef<HTMLDivElement | null>(null);
 
     const [debouncedSearch] = useDebounce(searchTerm, 400);
     const { data: searchResult, isFetching } = useSearchUsers(debouncedSearch, currentUser?.id || "", 1, 10);
-    console.log("Conversations in Sidebar:", conversations);
+    //console.log("Conversations in Sidebar:", conversations);
 
     const menuOpen = Boolean(anchorEl);
     const handleToggleMenu = (e: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(menuOpen ? null : e.currentTarget);
     };
+
+    const handleOpenCreateGroup = () => {
+        setOpenCreateGroup(true); // ✅ mở modal
+        handleCloseMenu(); // đóng menu
+    };
+
+    const handleCloseCreateGroup = () => {
+        setOpenCreateGroup(false); // ✅ đóng modal
+    };
+
+    const handleCreateGroup = () => {
+        // 🧩 Xử lý tạo nhóm ở đây
+        console.log("Creating group...");
+        handleCloseCreateGroup();
+    };
+
     const handleCloseMenu = () => setAnchorEl(null);
     const handleLogout = () => {
         logout();
@@ -190,41 +208,51 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
                         </Typography>
 
                         <List>
-                            {conversations?.items && conversations.items.length > 0 ? (
-                                conversations.items.map((conversation: any) => (
-                                    <ListItem
-                                        key={conversation.id}
-                                        onClick={() => onSelectUser(conversation)}
-                                        sx={{
-                                            borderRadius: 2,
-                                            mb: 1,
-                                            bgcolor:
-                                                selectedUser?.id === conversation.id
-                                                    ? "rgba(0,145,255,0.15)"
-                                                    : "transparent",
-                                            cursor: "pointer",
-                                            "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
-                                        }}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar src={getConversationAvatar(conversation)} />
-                                        </ListItemAvatar>
-                                        {!isCollapsed && (
-                                            <Typography
-                                                variant="subtitle1"
-                                                sx={{
-                                                    fontWeight: selectedUser?.id === conversation.id ? 700 : 500,
-                                                    color: "#fff",
-                                                }}
-                                            >
-                                                {getConversationDisplayName(conversation)}
-                                            </Typography>
-                                        )}
-                                    </ListItem>
-                                ))
+                            {conversations.length > 0 ? (
+                                conversations.map((item: any) => {
+                                    const isConversation = !!item.participants;
+                                    const displayName = isConversation
+                                        ? getConversationDisplayName(item)
+                                        : item.full_name;
+                                    const avatar = isConversation
+                                        ? getConversationAvatar(item)
+                                        : item.avatar_url || "https://i.pravatar.cc/150?img=10";
+
+                                    return (
+                                        <ListItem
+                                            key={item.id}
+                                            onClick={() => onSelectUser(item)}
+                                            sx={{
+                                                borderRadius: 2,
+                                                mb: 1,
+                                                bgcolor:
+                                                    selectedUser?.id === item.id
+                                                        ? "rgba(0,145,255,0.15)"
+                                                        : "transparent",
+                                                cursor: "pointer",
+                                                "&:hover": { bgcolor: "rgba(0,145,255,0.1)" },
+                                            }}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar src={avatar} />
+                                            </ListItemAvatar>
+                                            {!isCollapsed && (
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    sx={{
+                                                        fontWeight: selectedUser?.id === item.id ? 700 : 500,
+                                                        color: "#fff",
+                                                    }}
+                                                >
+                                                    {displayName}
+                                                </Typography>
+                                            )}
+                                        </ListItem>
+                                    );
+                                })
                             ) : (
-                                <Typography sx={{ color: '#fff', textAlign: 'center', mt: 2 }}>
-                                    No conversations
+                                <Typography sx={{ color: "#fff", textAlign: "center", mt: 2 }}>
+                                    No conversations or friends
                                 </Typography>
                             )}
                         </List>
@@ -288,7 +316,7 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
                     >
                         <MenuItem onClick={handleCloseMenu}>My Account</MenuItem>
                         <MenuItem onClick={handleCloseMenu}>Settings</MenuItem>
-                        <MenuItem onClick={handleCloseMenu}>Create Group</MenuItem>
+                        <MenuItem onClick={handleOpenCreateGroup}>Create Group</MenuItem>
                         <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)" }} />
                         <MenuItem onClick={handleLogout} sx={{ color: "#ff4d4d", fontWeight: 600 }}>
                             Log Out
@@ -297,6 +325,13 @@ const Sidebar = ({ isCollapsed, onSelectUser, selectedUser, currentUser, convers
                 </Box>
 
             )}
+            <CreateGroupModal
+                open={openCreateGroup}
+                onClose={handleCloseCreateGroup}
+                allUsers={[]} // truyền danh sách user ở đây nếu có
+                currentUser={currentUser}
+                handleCreate={handleCreateGroup}
+            />
         </Box>
     );
 };

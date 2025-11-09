@@ -19,20 +19,28 @@ const ChatRoomPage = () => {
     const { data: conversations, isLoading: isLoadingConversations, error: errorConversations } = useGetUserConversations(profile?.user.id || "");
     const { data: users, isLoading: isLoadingUsers, error: errorUsers } = useGetAllUsers()
     const mergedList = useMemo(() => {
-        if (!users || !conversations?.items) return [];
+        if (!users?.items || !conversations?.items) return [];
 
-        // lọc bạn bè chưa có conversation
-        const friendWithoutConv = users.items.filter(
-            (f: any) =>
-                !conversations.items.some((c: any) =>
-                    c.participants.some((p: any) => p.id === f.id)
-                )
+        // lọc bạn bè chưa có conversation single
+        const friendWithoutConv = users.items.filter((f: any) =>
+            !conversations.items.some((c: any) => {
+                // chỉ xét conversation loại 'single'
+                if (c.type !== "single") return false;
+
+                const participants = Array.isArray(c.participants[0])
+                    ? c.participants.flat()
+                    : c.participants;
+
+                return participants.some((p: any) => p.id === f.id);
+            })
         );
+
+        //console.log("👥 friendWithoutConv:", friendWithoutConv);
 
         return [...conversations.items, ...friendWithoutConv];
     }, [users, conversations]);
 
-
+    //console.log(mergedList)
 
 
     if (isLoadingReadMe || isLoadingConversations || isLoadingUsers) return <p>Loading...</p>;
@@ -41,7 +49,7 @@ const ChatRoomPage = () => {
     return (
         <Box sx={{ display: "flex", height: "100vh", color: "#fff", }} >
             {/* Sidebar trái */}
-            <Sidebar conversations={conversations}
+            <Sidebar conversations={mergedList}
                 isCollapsed={isCollapsed}
                 onSelectUser={(user) => setSelectedConversation(user)} // ⬅ nhận callback từ Sidebar
                 selectedUser={selectedConversation}

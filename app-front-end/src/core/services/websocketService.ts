@@ -5,7 +5,11 @@ export const createChatSocketService = () => {
   let listeners: MessageListener[] = [];
 
   const connect = (conversationId: string, userId: string) => {
+    if (!conversationId || !userId) return;
     const wsUrl = `ws://localhost:8000/ws/chat/${conversationId}/${userId}`;
+    //console.log("🧠 conversation:", conversationId);
+    //console.log("🧠 userid:", userId);
+
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => console.log("✅ WebSocket connected");

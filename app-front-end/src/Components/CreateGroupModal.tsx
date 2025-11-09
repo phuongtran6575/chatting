@@ -1,24 +1,19 @@
 import { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, TextField, Button, Checkbox, List, ListItem, ListItemText } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, TextField, Button, Checkbox, List, ListItem, ListItemText, ListItemButton } from "@mui/material";
 
-const CreateGroupModal = ({ open, onClose, allUsers, currentUser }: any) => {
+interface CreateGroupModal {
+
+}
+
+const CreateGroupModal = ({ open, onClose, allUsers, currentUser, handleCreate }: any) => {
     const [selected, setSelected] = useState<string[]>([]);
     const [groupName, setGroupName] = useState("");
-    const { mutateAsync: createGroup } = useCreateGroupConversation();
 
     const handleToggle = (id: string) => {
         setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     };
 
-    const handleCreate = async () => {
-        if (!groupName.trim() || selected.length < 2) return;
-        await createGroup({
-            creator_id: currentUser.id,
-            member_ids: selected,
-            group_name: groupName,
-        });
-        onClose();
-    };
+
 
     return (
         <Dialog open={open} onClose={onClose}>
@@ -33,9 +28,11 @@ const CreateGroupModal = ({ open, onClose, allUsers, currentUser }: any) => {
                 />
                 <List>
                     {allUsers.map((u: any) => (
-                        <ListItem key={u.id} onClick={() => handleToggle(u.id)} button>
-                            <Checkbox checked={selected.includes(u.id)} />
-                            <ListItemText primary={u.full_name} />
+                        <ListItem key={u.id} disablePadding>
+                            <ListItemButton onClick={() => handleToggle(u.id)}>
+                                <Checkbox checked={selected.includes(u.id)} />
+                                <ListItemText primary={u.full_name} />
+                            </ListItemButton>
                         </ListItem>
                     ))}
                 </List>

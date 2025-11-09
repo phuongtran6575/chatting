@@ -15,3 +15,8 @@ class GroupConversationCreate(BaseModel):
     creator_id: UUID
     member_ids: List[UUID]
     group_name: Optional[str] = None
+    
+    
+class SingleConversationCreate(BaseModel):
+    sender_id: UUID | str
+    receiver_id: UUID | str

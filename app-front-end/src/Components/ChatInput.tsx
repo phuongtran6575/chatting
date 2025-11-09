@@ -1,7 +1,7 @@
 import { Box, TextField, IconButton, InputAdornment, } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
-import type { User } from "../core/Types";
+import type { Conversation, User } from "../core/Types";
 import { useChatWebSocket } from "../core/hook/useWebsocket";
 import { useState } from "react";
 import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
@@ -11,11 +11,19 @@ interface ChatInputProps {
     currentUser: User | null;
 }
 
-const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
-    // 🧩 Khởi tạo WebSocket khi có conversation và user
-    const { messages, sendMessage } = useChatWebSocket(currentConversation?.id || "", currentUser?.id || "");
-    const { data: Conversation } = useGetOrCreateSingleConversation(currentUser?.id || "", currentConversation?.participantId || "");
+const isConversation = (obj: any): obj is Conversation => {
+    return obj &&
+        typeof obj === 'object' &&
+        'type' in obj &&
+        'participants' in obj &&
+        (obj.type === 'group' || obj.type === 'single');
+};
 
+const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
+    const isValidConversation = isConversation(currentConversation);
+    // 🧩 Khởi tạo WebSocket khi có conversation và user
+    const { messages, sendMessage } = useChatWebSocket(isValidConversation ? currentConversation.id : "", currentUser?.id || "");
+    const getOrCreateConversation = useGetOrCreateSingleConversation();
     const [text, setText] = useState("");
 
     const handleSendMessage = () => {
@@ -23,8 +31,14 @@ const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
         //nếu chưa thì đoạn chat đầu tiên sẽ tự tạo conversation, 
         // nếu  rồi thì tiếp tục gửi message
         // với group conversation thì thường phải tạo bằng tay nên đoạn này chủ yêus để kiểm tra  single type
-        if (!currentConversation.id) {
-            console.warn("No conversation selected.");
+        if (!isValidConversation) {
+
+            getOrCreateConversation.mutate(
+                {
+                    senderId: currentUser?.id || "",
+                    receiverId: currentConversation.id, // currentConversation là user
+                }
+            );
         }
         if (!text.trim()) return;
         sendMessage(text);

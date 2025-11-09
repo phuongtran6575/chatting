@@ -1,6 +1,7 @@
 from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from uuid import UUID
+from models.conversation_schema import SingleConversationCreate
 from services import auth_service
 from core.helpers import auth_helper
 from core.utils.to_uuid import to_uuid
@@ -20,12 +21,12 @@ async def get_group_conversation(conversation_id: UUID | str,session: sessionDep
     """Lấy danh sách các cuộc trò chuyện nhóm có phân trang."""
     return await conversation_service.get_group_conversation(conversation_uuid, session)
 
-@router.get("/single")
-async def create_or_get_single_conversation(sender_id: UUID | str, receiver_id: UUID | str, session: sessionDepends):
+@router.post("/single")
+async def create_or_get_single_conversation(body: SingleConversationCreate, session: sessionDepends):
     try:
         # Đã thay đổi: Tên biến
-        sender_uuid = to_uuid(sender_id) 
-        receiver_uuid = to_uuid(receiver_id)
+        sender_uuid = to_uuid(body.sender_id) 
+        receiver_uuid = to_uuid(body.receiver_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
     return await conversation_service.create_or_get_single_conversation(sender_uuid, receiver_uuid, session)
