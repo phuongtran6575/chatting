@@ -12,19 +12,17 @@ import { useGetUserConversations } from "../core/hook/useConversation";
 const ChatRoomPage = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
-
-    // 🧠 user đang được chọn (từ Sidebar)
     const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+
     const { data: profile, isLoading: isLoadingReadMe } = useReadMe();
-    const { data: conversations, isLoading: isLoadingConversations, error: errorConversations } = useGetUserConversations(profile?.user.id || "");
+    const { data: conversations, isLoading: isLoadingConversations, error: errorConversations, refetch: refetchConversations } = useGetUserConversations(profile?.user.id || "");
     const { data: users, isLoading: isLoadingUsers, error: errorUsers } = useGetAllUsers()
+
     const mergedList = useMemo(() => {
         if (!users?.items || !conversations?.items) return [];
 
-        // lọc bạn bè chưa có conversation single
         const friendWithoutConv = users.items.filter((f: any) =>
             !conversations.items.some((c: any) => {
-                // chỉ xét conversation loại 'single'
                 if (c.type !== "single") return false;
 
                 const participants = Array.isArray(c.participants[0])
@@ -35,28 +33,33 @@ const ChatRoomPage = () => {
             })
         );
 
-        //console.log("👥 friendWithoutConv:", friendWithoutConv);
-
         return [...conversations.items, ...friendWithoutConv];
     }, [users, conversations]);
 
-    //console.log(mergedList)
+    // 👇 Callback để update conversation sau khi tạo mới
+    const handleConversationCreated = async (newConversation: any) => {
+        console.log("✅ Conversation created:", newConversation);
 
+        // 1. Update selectedConversation
+        setSelectedConversation(newConversation);
+
+        // 2. Refetch conversations để cập nhật sidebar
+        await refetchConversations();
+    };
 
     if (isLoadingReadMe || isLoadingConversations || isLoadingUsers) return <p>Loading...</p>;
     if (!profile?.user) return <p>No user found</p>;
 
     return (
         <Box sx={{ display: "flex", height: "100vh", color: "#fff", }} >
-            {/* Sidebar trái */}
-            <Sidebar conversations={mergedList}
+            <Sidebar
+                conversations={mergedList}
                 isCollapsed={isCollapsed}
-                onSelectUser={(user) => setSelectedConversation(user)} // ⬅ nhận callback từ Sidebar
+                onSelectUser={(user) => setSelectedConversation(user)}
                 selectedUser={selectedConversation}
                 currentUser={profile?.user || null}
             />
 
-            {/* Khu vực chính */}
             <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100%", }}  >
                 <Header
                     selectedConversation={selectedConversation}
@@ -65,18 +68,17 @@ const ChatRoomPage = () => {
                     currentUser={profile?.user || null}
                 />
 
-                {/* Nội dung chat co giãn */}
-
                 <ChatContent />
 
-                {/* Input luôn nằm cố định dưới */}
-                <ChatInput currentConversation={selectedConversation} currentUser={profile?.user} />
+                <ChatInput
+                    currentConversation={selectedConversation}
+                    currentUser={profile?.user}
+                    onConversationCreated={handleConversationCreated} // 👈 Truyền callback
+                />
             </Box>
 
-            {/* Sidebar phải */}
             <ChatInfoSidebar isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
         </Box>
     );
 };
-
 export default ChatRoomPage;

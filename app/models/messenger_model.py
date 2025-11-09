@@ -180,8 +180,8 @@ class Conversation(SQLModel, table=True):
 class ConversationParticipant(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     conversation_id: UUID = Field(foreign_key="conversation.id", nullable=False)
-    user_id: UUID = Field(foreign_key="user.id", nullable=False)
-    role_id: Optional[UUID] = Field(default=None, foreign_key="conversationrole.id")
+    user_id: UUID = Field(foreign_key="user.id", nullable=False, ondelete="CASCADE")
+    role_id: Optional[UUID] = Field(default=None, foreign_key="conversationrole.id", ondelete="CASCADE")
     joined_at: datetime = Field(default_factory=datetime.utcnow)
     is_muted: bool = Field(default=False)
     is_archived: bool = Field(default=False)
@@ -206,7 +206,7 @@ class Attachment(SQLModel, table=True):
 
 class Message(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    conversation_id: UUID = Field(foreign_key="conversation.id", nullable=False)
+    conversation_id: UUID = Field(foreign_key="conversation.id", nullable=False, ondelete="CASCADE")
     sender_id: UUID = Field(foreign_key="user.id", nullable=False)
     content: Optional[str] = None
     attachment_id: Optional[UUID] = Field(default=None, foreign_key="attachment.id")
