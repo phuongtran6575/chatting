@@ -20,3 +20,9 @@ class GroupConversationCreate(BaseModel):
 class SingleConversationCreate(BaseModel):
     sender_id: UUID | str
     receiver_id: UUID | str
+    
+    
+class FirstMessageCreate(BaseModel):
+    conversation_id: UUID
+    sender_id: UUID
+    content: str

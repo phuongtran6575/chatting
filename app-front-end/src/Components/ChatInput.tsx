@@ -2,13 +2,14 @@ import { Box, TextField, IconButton, InputAdornment, } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
 import type { Conversation, User } from "../core/Types";
-import { useChatWebSocket } from "../core/hook/useWebsocket";
-import { useState } from "react";
+import { useChatWebSocket, useSendFirstMessage } from "../core/hook/useWebsocket";
+import { useEffect, useRef, useState } from "react";
 import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
 
 interface ChatInputProps {
     currentConversation: any | null;
     currentUser: User | null;
+    onConversationCreated?: (conversation: any) => void; // 👈 Thêm prop
 }
 
 const isConversation = (obj: any): obj is Conversation => {
@@ -19,31 +20,66 @@ const isConversation = (obj: any): obj is Conversation => {
         (obj.type === 'group' || obj.type === 'single');
 };
 
-const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
+const ChatInput = ({ currentConversation, currentUser, onConversationCreated }: ChatInputProps) => {
     const isValidConversation = isConversation(currentConversation);
-    // 🧩 Khởi tạo WebSocket khi có conversation và user
-    const { messages, sendMessage } = useChatWebSocket(isValidConversation ? currentConversation.id : "", currentUser?.id || "");
+    const creatingForUserRef = useRef<string | null>(null);
+
+    const { messages, sendMessage, isConnected } = useChatWebSocket( // 👈 Nhận isConnected
+        isValidConversation ? currentConversation.id : "",
+        currentUser?.id || ""
+    );
     const getOrCreateConversation = useGetOrCreateSingleConversation();
+    const sendFirstMessage = useSendFirstMessage();
+
     const [text, setText] = useState("");
+    const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
     const handleSendMessage = () => {
-        //đoạn kiểm tra currenconversation id để kiểm tra các single conversation đã tốn tại hay chưa, 
-        //nếu chưa thì đoạn chat đầu tiên sẽ tự tạo conversation, 
-        // nếu  rồi thì tiếp tục gửi message
-        // với group conversation thì thường phải tạo bằng tay nên đoạn này chủ yêus để kiểm tra  single type
-        if (!isValidConversation) {
+        if (!text.trim()) return;
 
+        if (!isValidConversation) {
+            const messageToSend = text;
+            const targetId = currentConversation.id; // người đang nhắn tới
+            creatingForUserRef.current = targetId;
+            setText("");
+            console.log(creatingForUserRef)
             getOrCreateConversation.mutate(
+                { senderId: currentUser?.id || "", receiverId: targetId },
                 {
-                    senderId: currentUser?.id || "",
-                    receiverId: currentConversation.id, // currentConversation là user
+                    onSuccess: (newConversation) => {
+                        // ✅ kiểm tra xem user hiện tại có còn là người đó không
+                        if (creatingForUserRef.current !== targetId) {
+                            // user đã chuyển tab -> bỏ qua gửi
+                            console.log("⚠️ Conversation changed — skipping sendFirstMessage");
+                            creatingForUserRef.current = null;
+                            return;
+                        }
+
+                        onConversationCreated?.(newConversation);
+                        console.log("luu lai day")
+                        sendFirstMessage.mutate({
+                            conversationId: newConversation.id,
+                            senderId: currentUser?.id || "",
+                            content: messageToSend,
+                        });
+                    },
+                    onError: () => setText(messageToSend),
                 }
             );
+        } else {
+            sendMessage(text);
+            setText("");
         }
-        if (!text.trim()) return;
-        sendMessage(text);
-        setText(""); // reset input sau khi gửi
     };
+
+    // 👇 Theo dõi khi WebSocket connected và có pending message
+    useEffect(() => {
+        if (isConnected && pendingMessage) {
+            console.log("✅ WebSocket ready, sending pending message:", pendingMessage);
+            sendMessage(pendingMessage);
+            setPendingMessage(null);
+        }
+    }, [isConnected, pendingMessage, sendMessage]);
 
     return (
         <Box
@@ -55,12 +91,11 @@ const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
                 borderTop: "1px solid rgba(255,255,255,0.1)",
             }}
         >
-            {/* Ô nhập tin nhắn */}
             <TextField
                 fullWidth
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()} // enter để gửi
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder="Nhắn tin với...."
                 variant="outlined"
                 InputProps={{
@@ -83,7 +118,6 @@ const ChatInput = ({ currentConversation, currentUser }: ChatInputProps) => {
                 }}
             />
 
-            {/* Nút gửi tin nhắn */}
             <IconButton
                 onClick={handleSendMessage}
                 sx={{
