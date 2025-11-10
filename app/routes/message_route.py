@@ -6,7 +6,7 @@ from services import message_service
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
-@router.get("all-message-from-conversation")
+@router.get("/all-message-from-conversation")
 async  def get_all_message_from_conversation(conversation_id: UUID | str, session: sessionDepends):
     try:
         # Đã thay đổi: Tên biến

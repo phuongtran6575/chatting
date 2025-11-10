@@ -1,4 +1,6 @@
 import { Box, Avatar, Typography, Paper } from "@mui/material";
+import { useEffect, useRef } from "react";
+import type { User } from "../core/Types";
 
 const messages = [
     {
@@ -11,7 +13,36 @@ const messages = [
     // Bạn có thể thêm tin nhắn khác ở đây
 ];
 
-const ChatContent = () => {
+interface ChatContentProps {
+    messages: any[]; // 👈 Nhận từ props thay vì fetch API
+    currentUser: User | null;
+}
+
+const ChatContent = ({ messages, currentUser }: ChatContentProps) => {
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // 👇 Auto-scroll khi có tin nhắn mới
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
+    if (messages.length === 0) {
+        return (
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "#0b1625",
+                    color: "#666",
+                }}
+            >
+                <Typography>Chưa có tin nhắn. Hãy bắt đầu trò chuyện!</Typography>
+            </Box>
+        );
+    }
+
     return (
         <Box
             sx={{
@@ -24,48 +55,57 @@ const ChatContent = () => {
                 gap: 2,
             }}
         >
-            {messages.map((msg) => (
+            {messages.map((msg: any) => (
                 <Box
                     key={msg.id}
                     sx={{
                         display: "flex",
                         alignItems: "flex-start",
                         gap: 1.5,
-                        flexDirection: msg.isUser ? "row-reverse" : "row",
+                        flexDirection:
+                            msg.sender_id === currentUser?.id ? "row-reverse" : "row",
                     }}
                 >
-                    {/* Avatar người gửi */}
                     <Avatar
-                        src={msg.avatar}
-                        alt={msg.sender}
-                        sx={{
-                            width: 36,
-                            height: 36,
-                            mt: "auto",
-                            mb: "auto",
-                        }}
+                        src={msg.sender?.avatar || msg.avatar}
+                        alt={msg.sender?.full_name || msg.sender}
+                        sx={{ width: 36, height: 36, mt: "auto", mb: "auto" }}
                     />
 
-                    {/* Bong bóng tin nhắn */}
                     <Paper
                         elevation={2}
                         sx={{
-                            bgcolor: msg.isUser ? "#1976d2" : "#2c3e55",
+                            bgcolor:
+                                msg.sender_id === currentUser?.id ? "#1976d2" : "#2c3e55",
                             color: "#fff",
                             px: 2,
                             py: 1,
                             borderRadius: 3,
-                            borderTopLeftRadius: msg.isUser ? 3 : 0,
-                            borderTopRightRadius: msg.isUser ? 0 : 3,
+                            borderTopLeftRadius:
+                                msg.sender_id === currentUser?.id ? 3 : 0,
+                            borderTopRightRadius:
+                                msg.sender_id === currentUser?.id ? 0 : 3,
                             maxWidth: "70%",
                             boxShadow: "0px 2px 5px rgba(0,0,0,0.3)",
                         }}
                     >
-                        <Typography variant="body1">{msg.text}</Typography>
+                        <Typography variant="body1">{msg.content}</Typography>
+                        <Typography
+                            variant="caption"
+                            sx={{ opacity: 0.7, fontSize: "0.7rem", display: "block", mt: 0.5 }}
+                        >
+                            {new Date(msg.created_at).toLocaleTimeString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </Typography>
                     </Paper>
                 </Box>
             ))}
+
+            <div ref={messagesEndRef} />
         </Box>
     );
-}
-export default ChatContent
+};
+
+export default ChatContent;

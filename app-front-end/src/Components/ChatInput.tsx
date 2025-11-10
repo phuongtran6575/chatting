@@ -11,6 +11,7 @@ interface ChatInputProps {
     currentUser: User | null;
     targetUser: User | null;
     onConversationCreated?: (conversation: any) => void; // 👈 Thêm prop
+    onMessageAdd?: (message: any) => void;
 }
 
 const isConversation = (obj: any): obj is Conversation => {
@@ -21,7 +22,7 @@ const isConversation = (obj: any): obj is Conversation => {
         (obj.type === 'group' || obj.type === 'single');
 };
 
-const ChatInput = ({ currentConversation, targetUser, currentUser, onConversationCreated }: ChatInputProps) => {
+const ChatInput = ({ currentConversation, targetUser, currentUser, onConversationCreated, onMessageAdd }: ChatInputProps) => {
     const [text, setText] = useState("");
     const [pendingMessages, setPendingMessages] = useState<string[]>([]);
 
@@ -54,18 +55,26 @@ const ChatInput = ({ currentConversation, targetUser, currentUser, onConversatio
     // 👇 AUTO-SEND pending messages khi WebSocket ready
     useEffect(() => {
         if (isConnected && conversationId && pendingMessages.length > 0 && !isCreatingConversation) {
-            console.log("📤 WebSocket CONNECTED! Sending", pendingMessages.length, "pending messages");
+            console.log("📤 Sending", pendingMessages.length, "pending messages");
 
             pendingMessages.forEach((msg, index) => {
                 setTimeout(() => {
-                    console.log(`📤 [${index + 1}/${pendingMessages.length}] Sending:`, msg);
                     sendMessage(msg);
+
+                    // 👇 ADD TỪNG TIN NHẮN VÀO UI
+                    onMessageAdd?.({
+                        id: `temp-${Date.now()}-${index}`,
+                        content: msg,
+                        sender_id: currentUser?.id,
+                        sender: currentUser,
+                        created_at: new Date().toISOString(),
+                    });
                 }, index * 100);
             });
 
             setPendingMessages([]);
         }
-    }, [isConnected, conversationId, pendingMessages, isCreatingConversation, sendMessage]);
+    }, [isConnected, conversationId, pendingMessages, isCreatingConversation, sendMessage, currentUser, onMessageAdd]);
 
     const handleSendMessage = useCallback(() => {
         if (!text.trim()) return;
@@ -156,14 +165,19 @@ const ChatInput = ({ currentConversation, targetUser, currentUser, onConversatio
             if (isConnected) {
                 console.log("📤 [WEBSOCKET] Sending message (connected)");
                 sendMessage(messageToSend);
+
+                // 👇 ADD TIN NHẮN NGAY VÀO UI
+                onMessageAdd?.({
+                    id: `temp-${Date.now()}`,
+                    content: messageToSend,
+                    sender_id: currentUser?.id,
+                    sender: currentUser,
+                    created_at: new Date().toISOString(),
+                });
             } else {
                 console.log("⏳ [QUEUE] WebSocket not connected yet");
                 setPendingMessages(prev => [...prev, messageToSend]);
             }
-        } else {
-            // 🧩 Fallback: Queue nếu không rõ trạng thái
-            console.log("⏳ [QUEUE] Unknown state, queueing message");
-            setPendingMessages(prev => [...prev, messageToSend]);
         }
     }, [
         text,

@@ -80,7 +80,8 @@ const Sidebar = ({
         const other = conversation.participants?.find((p: any) => p.id !== currentUser?.id);
         return other?.avatar_url || "https://i.pravatar.cc/150?img=11";
     };
-
+    console.log(selectedConversation)
+    console.log(selectedUser)
     return (
         <Box
             sx={{
