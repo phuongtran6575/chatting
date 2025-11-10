@@ -1,7 +1,7 @@
 import { axiosAPI } from "./baseService";
 
 // chatSocketService.ts
-export const messageService = {
+export const websocketmessageService = {
 
   sendFirstMessage: async ( conversationId: string, senderId: string, content: string) => {
       const res = await axiosAPI.post("/sendfirstMessage", { conversation_id: conversationId, sender_id: senderId, content: content,});

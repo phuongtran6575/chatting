@@ -2,6 +2,8 @@ from fastapi import WebSocket
 from typing import Dict, List
 from uuid import UUID
 
+
+
 class ConnectionManager:
     def __init__(self):
         # Key: conversation_id, Value: dict[user_id -> WebSocket]
@@ -25,3 +27,5 @@ class ConnectionManager:
             for uid, ws in self.active_conversations[conversation_id].items():
                 if uid != exclude_user:
                     await ws.send_text(message)
+                    
+                    

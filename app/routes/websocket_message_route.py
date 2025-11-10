@@ -36,10 +36,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: UUID, user_i
         manager.disconnect(user_id, conversation_id)
         
 @router.post("/sendfirstMessage")
-async def send_first_message(
-    data: FirstMessageCreate,
-    session: sessionDepends,
-):
+async def send_first_message(data: FirstMessageCreate,session: sessionDepends,):
     conversation = await session.get(Conversation, data.conversation_id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")

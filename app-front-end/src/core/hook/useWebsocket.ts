@@ -1,6 +1,6 @@
 // src/hooks/useChatWebSocket.ts
 import { useEffect, useState } from "react";
-import { chatSocketService, messageService } from "../services/websocketService";
+import { chatSocketService, websocketmessageService,  } from "../services/websocketService";
 import { useMutation } from "@tanstack/react-query";
 
 export const useSendFirstMessage = () => {
@@ -14,7 +14,7 @@ export const useSendFirstMessage = () => {
       senderId: string;
       content: string;
     }) => {
-      return await messageService.sendFirstMessage(conversationId, senderId, content);
+      return await websocketmessageService.sendFirstMessage(conversationId, senderId, content);
     },
 
     onSuccess: (data) => {

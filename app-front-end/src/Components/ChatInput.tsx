@@ -3,7 +3,7 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
 import type { Conversation, User } from "../core/Types";
 import { useChatWebSocket, useSendFirstMessage } from "../core/hook/useWebsocket";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useGetOrCreateSingleConversation } from "../core/hook/useConversation";
 
 interface ChatInputProps {
@@ -23,61 +23,164 @@ const isConversation = (obj: any): obj is Conversation => {
 
 const ChatInput = ({ currentConversation, targetUser, currentUser, onConversationCreated }: ChatInputProps) => {
     const [text, setText] = useState("");
-    const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+    const [pendingMessages, setPendingMessages] = useState<string[]>([]);
+
+    // 👇 Track conversation creation state
+    const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+    const [tempConversationId, setTempConversationId] = useState<string>("");
+
     const creatingForUserRef = useRef<string | null>(null);
 
     const isValidConversation = currentConversation && currentConversation.participants;
+    const conversationId = isValidConversation ? currentConversation.id : tempConversationId;
+
     const { messages, sendMessage, isConnected } = useChatWebSocket(
-        isValidConversation ? currentConversation.id : "",
+        conversationId,
         currentUser?.id || ""
     );
+
     const getOrCreateConversation = useGetOrCreateSingleConversation();
     const sendFirstMessage = useSendFirstMessage();
 
-    const handleSendMessage = () => {
+    // 👇 Reset temp conversation khi chuyển user
+    useEffect(() => {
+        if (!targetUser && !currentConversation) {
+            setTempConversationId("");
+            setPendingMessages([]);
+            setIsCreatingConversation(false);
+        }
+    }, [targetUser, currentConversation]);
+
+    // 👇 AUTO-SEND pending messages khi WebSocket ready
+    useEffect(() => {
+        if (isConnected && conversationId && pendingMessages.length > 0 && !isCreatingConversation) {
+            console.log("📤 WebSocket CONNECTED! Sending", pendingMessages.length, "pending messages");
+
+            pendingMessages.forEach((msg, index) => {
+                setTimeout(() => {
+                    console.log(`📤 [${index + 1}/${pendingMessages.length}] Sending:`, msg);
+                    sendMessage(msg);
+                }, index * 100);
+            });
+
+            setPendingMessages([]);
+        }
+    }, [isConnected, conversationId, pendingMessages, isCreatingConversation, sendMessage]);
+
+    const handleSendMessage = useCallback(() => {
         if (!text.trim()) return;
+
         const messageToSend = text.trim();
         setText("");
 
-        // 🧩 Nếu chưa có conversation (chat với user)
+        console.log("\n" + "=".repeat(60));
+        console.log("📝 SEND MESSAGE:", messageToSend);
+        console.log("   - currentConversation:", currentConversation?.id);
+        console.log("   - tempConversationId:", tempConversationId);
+        console.log("   - isValidConversation:", isValidConversation);
+        console.log("   - conversationId:", conversationId);
+        console.log("   - isConnected:", isConnected);
+        console.log("   - isCreatingConversation:", isCreatingConversation);
+        console.log("   - targetUser:", targetUser?.id);
+        console.log("   - pendingMessages.length:", pendingMessages.length);
+        console.log("=".repeat(60) + "\n");
+
+        // 🧩 Case 1: Đang tạo conversation → Queue ngay
+        if (isCreatingConversation) {
+            console.log("⏳ [QUEUE] Conversation is being created");
+            setPendingMessages(prev => [...prev, messageToSend]);
+            return;
+        }
+
+        // 🧩 Case 2: Chưa có conversation - tạo mới
         if (!isValidConversation && targetUser) {
             const targetId = targetUser.id;
             creatingForUserRef.current = targetId;
+            setIsCreatingConversation(true);
+
+            console.log("🆕 [CREATE] Creating new conversation with user:", targetId);
 
             getOrCreateConversation.mutate(
                 { senderId: currentUser?.id || "", receiverId: targetId },
                 {
                     onSuccess: (newConversation) => {
+                        // Kiểm tra race condition
                         if (creatingForUserRef.current !== targetId) {
-                            console.log("⚠️ Conversation changed — skipping sendFirstMessage");
+                            console.log("⚠️ [CANCEL] User switched - ignoring old conversation");
                             creatingForUserRef.current = null;
+                            setIsCreatingConversation(false);
                             return;
                         }
+
+                        console.log("✅ [CREATE SUCCESS] Conversation:", newConversation.id);
+
+                        // 👇 Set temp conversation ID để WebSocket connect ngay
+                        setTempConversationId(newConversation.id);
+
+                        // 👇 Thông báo cho parent
                         onConversationCreated?.(newConversation);
+
+                        // 👇 Send first message qua API
+                        console.log("📤 [API] Sending first message");
                         sendFirstMessage.mutate({
                             conversationId: newConversation.id,
                             senderId: currentUser?.id || "",
                             content: messageToSend,
+                        }, {
+                            onSuccess: () => {
+                                console.log("✅ [API SUCCESS] First message sent");
+                                setIsCreatingConversation(false);
+                                creatingForUserRef.current = null;
+                            },
+                            onError: (error) => {
+                                console.error("❌ [API ERROR] Failed to send first message:", error);
+                                setIsCreatingConversation(false);
+                                creatingForUserRef.current = null;
+                                setText(messageToSend);
+                            }
                         });
                     },
-                    onError: () => setText(messageToSend),
+                    onError: (error) => {
+                        console.error("❌ [CREATE ERROR] Failed to create conversation:", error);
+                        setText(messageToSend);
+                        setIsCreatingConversation(false);
+                        creatingForUserRef.current = null;
+                    },
                 }
             );
             return;
         }
 
-        // 🧩 Nếu đã có conversation
+        // 🧩 Case 3: Đã có conversation
         if (isValidConversation) {
-            sendMessage(messageToSend);
+            if (isConnected) {
+                console.log("📤 [WEBSOCKET] Sending message (connected)");
+                sendMessage(messageToSend);
+            } else {
+                console.log("⏳ [QUEUE] WebSocket not connected yet");
+                setPendingMessages(prev => [...prev, messageToSend]);
+            }
+        } else {
+            // 🧩 Fallback: Queue nếu không rõ trạng thái
+            console.log("⏳ [QUEUE] Unknown state, queueing message");
+            setPendingMessages(prev => [...prev, messageToSend]);
         }
-    };
-
-    useEffect(() => {
-        if (isConnected && pendingMessage) {
-            sendMessage(pendingMessage);
-            setPendingMessage(null);
-        }
-    }, [isConnected, pendingMessage, sendMessage]);
+    }, [
+        text,
+        currentConversation,
+        tempConversationId,
+        isValidConversation,
+        conversationId,
+        isConnected,
+        isCreatingConversation,
+        targetUser,
+        pendingMessages.length,
+        currentUser,
+        getOrCreateConversation,
+        sendFirstMessage,
+        sendMessage,
+        onConversationCreated
+    ]);
 
     return (
         <Box
@@ -87,27 +190,38 @@ const ChatInput = ({ currentConversation, targetUser, currentUser, onConversatio
                 bgcolor: "#0d1627",
                 p: 2,
                 borderTop: "1px solid rgba(255,255,255,0.1)",
+                position: "relative"
             }}
         >
             <TextField
                 fullWidth
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                    }
+                }}
                 placeholder="Nhắn tin..."
                 variant="outlined"
+                multiline
+                maxRows={4}
+                disabled={isCreatingConversation}
                 InputProps={{
                     sx: {
                         bgcolor: "#2c3e55",
-                        borderRadius: 50,
+                        borderRadius: 3,
                         color: "#cfd8dc",
                         px: 2,
+                        py: 1,
                         "& .MuiOutlinedInput-notchedOutline": { border: "none" },
                     },
                 }}
             />
             <IconButton
                 onClick={handleSendMessage}
+                disabled={!text.trim() || isCreatingConversation}
                 sx={{
                     ml: 1.5,
                     bgcolor: "#3b4a63",
@@ -115,10 +229,66 @@ const ChatInput = ({ currentConversation, targetUser, currentUser, onConversatio
                     p: 1.2,
                     borderRadius: "50%",
                     "&:hover": { bgcolor: "#4a5d7a" },
+                    "&:disabled": {
+                        bgcolor: "#2c3e55",
+                        color: "#666"
+                    },
                 }}
             >
                 <SendRoundedIcon />
             </IconButton>
+
+            {/* 👇 Status indicators */}
+            {/*} {isCreatingConversation && (
+                <Box sx={{
+                    position: 'absolute',
+                    bottom: 70,
+                    right: 20,
+                    bgcolor: 'blue',
+                    color: 'white',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    fontSize: 12,
+                    zIndex: 1000
+                }}>
+                    🔄 Đang tạo cuộc trò chuyện...
+                </Box>
+            )}*/}
+
+            {/* {!isCreatingConversation && pendingMessages.length > 0 && (
+                <Box sx={{
+                    position: 'absolute',
+                    bottom: 70,
+                    right: 20,
+                    bgcolor: 'orange',
+                    color: 'black',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    fontSize: 12,
+                    zIndex: 1000
+                }}>
+                    ⏳ {pendingMessages.length} tin nhắn đang chờ...
+                </Box>
+            )}*/}
+
+            {/*{isConnected && conversationId && (
+                <Box sx={{
+                    position: 'absolute',
+                    bottom: 70,
+                    left: 20,
+                    bgcolor: 'green',
+                    color: 'white',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    fontSize: 12,
+                    zIndex: 1000
+                }}>
+                    ✅ Đã kết nối
+                </Box>
+            )}*/}
         </Box>
     );
 };
