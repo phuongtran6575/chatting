@@ -11,7 +11,7 @@ class ConversationBase(BaseModel):
 class ConversationCreate(ConversationBase):
     pass
 
-class GroupConversationCreate(BaseModel):
+class GroupCreateRequest(BaseModel):
     creator_id: UUID
     member_ids: List[UUID]
     group_name: Optional[str] = None

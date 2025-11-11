@@ -126,6 +126,7 @@ const ChatRoomPage = () => {
     return (
         <Box sx={{ display: "flex", height: "100vh", color: "#fff" }}>
             <Sidebar
+                refetchConversations={refetchConversations}
                 conversations={mergedList}
                 isCollapsed={isCollapsed}
                 selectedConversation={selectedConversation}

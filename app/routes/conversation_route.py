@@ -1,7 +1,7 @@
 from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from uuid import UUID
-from models.conversation_schema import SingleConversationCreate
+from models.conversation_schema import GroupCreateRequest, SingleConversationCreate
 from services import auth_service
 from core.helpers import auth_helper
 from core.utils.to_uuid import to_uuid
@@ -47,13 +47,16 @@ async def get_user_conversations( token: Annotated[str, Depends(token)], session
     return await conversation_service.get_user_conversations(session, user_uuid, page, page_size)
 
 @router.post("/group")
-async def create_group_conversation( creator_id: UUID | str, member_ids: List[UUID], session: sessionDepends, group_name: Optional[str] = None,):
+async def create_group_conversation(
+    payload: GroupCreateRequest,
+    session: sessionDepends,
+):
     """
     Tạo hoặc lấy group conversation nếu đã tồn tại (có cùng tập người)
     """
     try:
-        creator_uuid = to_uuid(creator_id)
-        member_uuid_list = [to_uuid(mid) for mid in member_ids]
+        creator_uuid = to_uuid(payload.creator_id)
+        member_uuid_list = [to_uuid(mid) for mid in payload.member_ids]
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
 
@@ -62,7 +65,7 @@ async def create_group_conversation( creator_id: UUID | str, member_ids: List[UU
         creator_id=creator_uuid,
         member_ids=member_uuid_list,
         session=session,
-        group_name=group_name
+        group_name=payload.group_name
     )
     return conversation
 @router.delete("/{conversation_id}")

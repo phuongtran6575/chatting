@@ -20,6 +20,7 @@ interface SidebarProps {
     selectedUser: any | null;
     onSelectConversation: (conv: any) => void;
     onSelectUser: (user: any) => void;
+    refetchConversations: () => void;
 }
 
 const Sidebar = ({
@@ -30,6 +31,7 @@ const Sidebar = ({
     selectedUser,
     onSelectConversation,
     onSelectUser,
+    refetchConversations
 }: SidebarProps) => {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
@@ -57,11 +59,6 @@ const Sidebar = ({
         setOpenCreateGroup(false); // ✅ đóng modal
     };
 
-    const handleCreateGroup = () => {
-        // 🧩 Xử lý tạo nhóm ở đây
-        console.log("Creating group...");
-        handleCloseCreateGroup();
-    };
 
     const handleCloseMenu = () => setAnchorEl(null);
     const handleLogout = () => {
@@ -326,9 +323,11 @@ const Sidebar = ({
             <CreateGroupModal
                 open={openCreateGroup}
                 onClose={handleCloseCreateGroup}
-                allUsers={[]} // truyền danh sách user ở đây nếu có
                 currentUser={currentUser}
-                handleCreate={handleCreateGroup}
+                onGroupCreated={() => {
+                    handleCloseCreateGroup();
+                    refetchConversations(); // ✅ cập nhật lại danh sách nhóm
+                }}
             />
         </Box>
     );
