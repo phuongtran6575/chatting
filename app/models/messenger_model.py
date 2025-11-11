@@ -18,7 +18,7 @@ class FriendshipStatus(str, enum.Enum):
     pending = "pending"   # Đã gửi lời mời
     accepted = "accepted" # Đã trở thành bạn bè
     blocked = "blocked"   # Bị chặn
-    declined = "declined" # Từ chối
+    rejected = "rejected"  # Từ chối
 
 class ConversationType(str, enum.Enum):
     SINGLE = "single"

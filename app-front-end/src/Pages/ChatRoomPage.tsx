@@ -9,6 +9,7 @@ import { useReadMe } from "../core/hook/useAuth";
 import { useGetAllUsers } from "../core/hook/useUser";
 import { useGetUserConversations } from "../core/hook/useConversation";
 import { useGetAllMessageFromConversation } from "../core/hook/useMessage";
+import { useGetListFriends } from "../core/hook/useFriendship";
 
 const ChatRoomPage = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -23,7 +24,8 @@ const ChatRoomPage = () => {
         isLoading: isLoadingConversations,
         refetch: refetchConversations,
     } = useGetUserConversations(profile?.user.id || "");
-    const { data: users, isLoading: isLoadingUsers } = useGetAllUsers();
+    //const { data: users, isLoading: isLoadingUsers } = useGetAllUsers();
+    const { data: friends, isLoading: isLoadingFriends } = useGetListFriends(profile?.user.id || "", 1, 10);
     const isConversation = !selectedUser ? selectedConversation : selectedUser;
 
     // 👇 CHỈ GỌI API KHI CÓ CONVERSATION ID HỢP LỆ
@@ -55,9 +57,9 @@ const ChatRoomPage = () => {
     }, [selectedConversation?.id, apiMessages.length]); // 👈 Dùng length thay vì array
 
     const mergedList = useMemo(() => {
-        if (!users?.items || !conversations?.items) return [];
+        if (!friends?.items || !conversations?.items) return [];
 
-        const friendWithoutConv = users.items.filter((f: any) =>
+        const friendWithoutConv = friends.items.filter((f: any) =>
             !conversations.items.some((c: any) => {
                 if (c.type !== "single") return false;
                 const participants = Array.isArray(c.participants[0])
@@ -68,8 +70,9 @@ const ChatRoomPage = () => {
         );
 
         return [...conversations.items, ...friendWithoutConv];
-    }, [users, conversations]);
-
+    }, [friends, conversations]);
+    console.log("Merged List:", mergedList);
+    console.log("friends", friends)
     const handleConversationCreated = useCallback((newConversation: any) => {
         console.log("🎉 Conversation created:", newConversation.id);
         setSelectedConversation(newConversation);
@@ -115,7 +118,7 @@ const ChatRoomPage = () => {
         setMessages([]); // Clear messages vì chưa có conversation
     }, []);
 
-    if (isLoadingReadMe || isLoadingConversations || isLoadingUsers) {
+    if (isLoadingReadMe || isLoadingConversations || isLoadingFriends) {
         return <p>Loading...</p>;
     }
 
@@ -158,7 +161,11 @@ const ChatRoomPage = () => {
                 />
             </Box>
 
-            <ChatInfoSidebar isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
+            <ChatInfoSidebar
+                isOpen={isInfoOpen}
+                onClose={() => setIsInfoOpen(false)}
+                currentUser={profile?.user || null}
+                selectedConversation={isConversation} />
         </Box>
     );
 };

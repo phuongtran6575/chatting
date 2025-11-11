@@ -5,13 +5,17 @@ import {
   Divider,
   IconButton,
   Stack,
+  Button,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import type { User } from "../core/Types";
 
 interface ChatInfoSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  currentUser: User | null;
+  selectedConversation: any | null; // có thể là user hoặc conversation
 }
 
 const ChatInfoSidebar = ({ isOpen, onClose }: ChatInfoSidebarProps) => {
@@ -57,6 +61,8 @@ const ChatInfoSidebar = ({ isOpen, onClose }: ChatInfoSidebarProps) => {
             </Typography>
           </Stack>
 
+          <Button>Them ban be</Button>
+
           {/* Về */}
           <Box sx={{ mt: 4 }}>
             <Typography
@@ -73,6 +79,7 @@ const ChatInfoSidebar = ({ isOpen, onClose }: ChatInfoSidebarProps) => {
               những đam mê và sở thích của họ.
             </Typography>
           </Box>
+
 
           {/* Phương tiện đã chia sẻ */}
           <Box sx={{ mt: 4 }}>

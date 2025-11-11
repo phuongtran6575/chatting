@@ -7,7 +7,7 @@ from routes.user_route import router as user_router
 from routes.conversation_route import router as conversation_router
 from routes.message_route import router as message_router
 from routes.websocket_message_route import router as websocket_router
-
+from routes.friendship_route import router as friendship_router
 app = FastAPI()
 
 @app.get("/")
@@ -32,4 +32,5 @@ app.include_router(role_router)
 app.include_router(user_router)
 app.include_router(conversation_router)
 app.include_router(message_router)
-app.include_router(websocket_router)
+app.include_router(user_router)
+app.include_router(friendship_router)
