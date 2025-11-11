@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Dialog, DialogTitle, DialogContent, TextField, Button, Checkbox, List, ListItem, ListItemText, ListItemButton } from "@mui/material";
+import { useGetAllUsers } from "../core/hook/useUser";
 
 interface CreateGroupModal {
 
 }
 
-const CreateGroupModal = ({ open, onClose, allUsers, currentUser, handleCreate }: any) => {
+const CreateGroupModal = ({ open, onClose, currentUser, handleCreate }: any) => {
+    const { data: listUser } = useGetAllUsers()
     const [selected, setSelected] = useState<string[]>([]);
     const [groupName, setGroupName] = useState("");
 
@@ -27,7 +29,7 @@ const CreateGroupModal = ({ open, onClose, allUsers, currentUser, handleCreate }
                     sx={{ mb: 2 }}
                 />
                 <List>
-                    {allUsers.map((u: any) => (
+                    {listUser?.items.map((u: any) => (
                         <ListItem key={u.id} disablePadding>
                             <ListItemButton onClick={() => handleToggle(u.id)}>
                                 <Checkbox checked={selected.includes(u.id)} />

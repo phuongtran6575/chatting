@@ -28,7 +28,7 @@ const ChatRoomPage = () => {
 
     // 👇 CHỈ GỌI API KHI CÓ CONVERSATION ID HỢP LỆ
     const conversationId = selectedConversation?.id || "";
-    const shouldFetchMessages = !!conversationId; // Boolean, không thay đổi liên tục
+    //const shouldFetchMessages = !!conversationId; // Boolean, không thay đổi liên tục
 
     const { data: apiMessages = [] } = useGetAllMessageFromConversation(
         conversationId,
