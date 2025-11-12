@@ -34,6 +34,7 @@ class NotificationType(str, enum.Enum):
     message = "message"
     call = "call"
     invite = "invite"
+    general="general"
 
 class CallType(str, enum.Enum):
     voice = "voice"

@@ -399,8 +399,8 @@ const Sidebar = ({
                                 boxShadow: "0 -4px 12px rgba(0,0,0,0.3)",
                                 p: 1,
                             },
-                        }}
-                    >
+                        }}>
+                        <MenuItem onClick={handleCloseMenu}>Thông báo</MenuItem>
                         <MenuItem onClick={handleCloseMenu}>My Account</MenuItem>
                         <MenuItem onClick={handleCloseMenu}>Settings</MenuItem>
                         <MenuItem onClick={handleOpenCreateGroup}>Create Group</MenuItem>
